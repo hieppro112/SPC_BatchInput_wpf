@@ -1,0 +1,482 @@
+﻿<Window x:Class="batchInput_wpf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:local="clr-namespace:batchInput_wpf"
+        mc:Ignorable="d"
+        Title="Order Check System" Height="900" Width="1400"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <!-- Modern Dark Button Style - Open (Xanh lá) -->
+        <Style x:Key="OpenButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1DB954"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="20,10"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#1ed760"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#1aa34a"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Dark Button Style - Start (Xanh dương) -->
+        <Style x:Key="StartButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1E88E5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="20,10"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#2196F3"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Dark Button Style - Pause (Đỏ) -->
+        <Style x:Key="PauseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#E63946"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="20,10"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#F44336"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#C62828"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="117*"/>
+            <ColumnDefinition Width="233*"/>
+        </Grid.ColumnDefinitions>
+        <!-- Header -->
+        <Border Height="60" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Grid.ColumnSpan="2">
+            <Grid Margin="20,0" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Bên trái -->
+
+                <TextBlock Grid.Column="0"
+                   Margin="20,0,30,0"
+                   VerticalAlignment="Center"
+                   FontWeight="Bold"
+                   FontSize="20"
+                   Text="Order Check System"/>
+
+                <!-- Button Mở Ảnh -->
+                <Button Grid.Column="1"
+                        x:Name="btn_lib"
+                        Content="📁 Mở Ảnh"
+                        Width="150"
+                        Height="45"
+                        Style="{StaticResource OpenButtonStyle}"
+                        Click="btn_lib_Click"
+                        Margin="0,0,15,0"/>
+
+                <!-- Cột * sẽ đẩy 2 nút bên phải -->
+                
+
+                <!-- Bên phải -->
+                <Button Grid.Column="4"
+                        x:Name="btn_start"
+                        Content="▶ START"
+                        Width="150"
+                        Height="45"
+                        Style="{StaticResource StartButtonStyle}"
+                        Click="btn_start_Click"
+                        Margin="15,0,15,0"/>
+
+                <!-- Button PAUSE -->
+                <Button Grid.Column="5"
+                        x:Name="btn_pause"
+                        Content="⏸ PAUSE"
+                        Width="150"
+                        Height="45"
+                        Style="{StaticResource PauseButtonStyle}"
+                        Click="btn_Pause_Click"
+                        Margin="15,0,0,0"/>
+            </Grid>
+
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Margin="0,60,0,0" Grid.ColumnSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="0.5*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top Section: Expandable Order List -->
+            <Grid Grid.Row="0" Margin="15,15,15,7">
+                <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4">
+                    <StackPanel>
+                        <!-- Header -->
+                        
+                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
+                            <TextBlock Text="New Orders (Click to expand PO details)" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
+                        </Border>
+
+                        <!-- Column Headers -->
+                        <Border Background="#F0F0F0" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="5">
+                            <Grid Height="35">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="180"/>
+                                    <ColumnDefinition Width="180"/>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="ID" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="TerminalID" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Machine" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Start" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="Msnv" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" Text="Shift" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="7" Text="Total PO" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                <TextBlock Grid.Column="8" Text="Complate" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="9" Text="DateCreated" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+
+                            </Grid>
+                        </Border>
+
+                        <!-- TreeView with Expandable Items -->
+                        <TreeView x:Name="OrderTreeView" 
+                                 Margin="0"
+                                 ItemsSource="{Binding BatchInputHistories}"
+                                 BorderThickness="0"
+                                 Background="White"
+                                  Height="400"
+                                 Padding="0">
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate ItemsSource="{Binding ListPO}">
+                                    <!-- Batch Item (Parent) -->
+                                    <Border Padding="0" Margin="0,1" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+
+                                                <Setter Property="Background"
+                                                    Value="White"/>
+
+                                                <Style.Triggers>
+
+                                                    <DataTrigger Binding="{Binding Status}"
+                                                            Value="Running">
+                                                        <Setter Property="Background"
+                                                                Value="#FFF9C4"/>
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding Status}"
+                                                                Value="Success">
+                                                        <Setter Property="Background"
+                                                            Value="#C8E6C9"/>
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding Status}"
+                                                        Value="Error">
+                                                        <Setter Property="Background"
+                                                            Value="#FFCDD2"/>
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid Background="Transparent" Height="40">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30"/>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="180"/>
+                                                <ColumnDefinition Width="180"/>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#333" VerticalAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding TerminalID}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Machine}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding start}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding Msnv}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding Shift}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="7" Text="{Binding ListPOs.Count}" FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                            <TextBlock Grid.Column="8" Text="{Binding isComplate}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="9" Text="{Binding DateCreated}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- PO Child Items Template -->
+                                    <HierarchicalDataTemplate.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="0" Margin="0,0" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                                <Grid Background="#F9F9F9" Height="35">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="50"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Text="├─" Foreground="#999" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Po}" FontSize="11" Foreground="#666" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding IDGroup}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="4" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="5" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="6" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="7" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </HierarchicalDataTemplate.ItemTemplate>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Bottom Section: Chart and Log -->
+            <Grid Grid.Row="1" Margin="15,7,15,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Chart Section -->
+                <Border Background="White" Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,7,0">
+                    <StackPanel>
+                        <!-- Header -->
+                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
+                            <TextBlock Text="Statistics" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
+                        </Border>
+
+                        <!-- Chart -->
+                        <Grid Background="#FAFAFA" Margin="0">
+                            <Grid Height="200" >
+                                <lvc:CartesianChart Series="{Binding Series}"
+                            XAxes="{Binding XAxes}"
+                            YAxes="{Binding YAxes}" />
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Log Section -->
+                <Border Background="White" Grid.Column="1" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="7,0,0,0">
+                    <StackPanel>
+                        <!-- Header -->
+                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
+                            <TextBlock Text="Error Log" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
+                        </Border>
+
+                        <!-- Log Text -->
+                        <ListBox ItemsSource="{Binding Log}"
+                                 Height="200"
+                                 BorderThickness="0">
+
+                            <ListBox.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <StackPanel Orientation="Horizontal" Margin="3">
+
+                                        <TextBlock FontSize="16">
+
+                                            <TextBlock.Style>
+
+                                                <Style TargetType="TextBlock">
+
+                                                    <Setter Property="Text"
+                                    Value="⏳"/>
+
+                                                    <Style.Triggers>
+
+                                                        <DataTrigger Binding="{Binding Status}"
+                                             Value="Success">
+
+                                                            <Setter Property="Text"
+                                            Value="✔"/>
+
+                                                            <Setter Property="Foreground"
+                                            Value="Green"/>
+
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding Status}"
+                                             Value="Error">
+
+                                                            <Setter Property="Text"
+                                            Value="✖"/>
+
+                                                            <Setter Property="Foreground"
+                                            Value="Red"/>
+
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding Status}"
+                                             Value="Running">
+
+                                                            <Setter Property="Text"
+                                            Value="⏳"/>
+
+                                                            <Setter Property="Foreground"
+                                            Value="Orange"/>
+
+                                                        </DataTrigger>
+
+                                                    </Style.Triggers>
+
+                                                </Style>
+
+                                            </TextBlock.Style>
+
+                                        </TextBlock>
+
+                                        <TextBlock Margin="10,0,0,0"
+                           Text="{Binding Time}"
+                           Foreground="Gray"/>
+
+                                        <TextBlock Margin="10,0,0,0"
+                           Text="{Binding Message}"/>
+
+                                    </StackPanel>
+
+                                </DataTemplate>
+
+                            </ListBox.ItemTemplate>
+
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
