@@ -6,18 +6,22 @@
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         xmlns:local="clr-namespace:batchInput_wpf"
         mc:Ignorable="d"
-        Title="Order Check System" Height="900" Width="1400"
-        Background="#F5F5F5">
+        Title="[CYBER_CORE] :: ORDER CHECK SYSTEM v2.0" Height="900" Width="1400"
+        MinHeight="700" MinWidth="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="#07090E"
+        Foreground="#00E5FF">
 
     <Window.Resources>
-        <!-- Modern Dark Button Style - Open (Xanh lá) -->
+        <!-- HIGH-TECH NEON BUTTON - OPEN (CYAN/GREEN) -->
         <Style x:Key="OpenButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#1DB954"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#0A2A22"/>
+            <Setter Property="Foreground" Value="#00FF99"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#00FF99"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -26,27 +30,32 @@
                                 <ScaleTransform ScaleX="1" ScaleY="1"/>
                             </Grid.RenderTransform>
                             <Border x:Name="BackBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="10"
-                                Padding="20,10"/>
-                            <ContentPresenter HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="16,8">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#00FF99" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#1ed760"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00FF99"/>
+                                <Setter Property="Foreground" Value="#07090E"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#1aa34a"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00CC77"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -56,14 +65,15 @@
             </Setter>
         </Style>
 
-        <!-- Modern Dark Button Style - Start (Xanh dương) -->
+        <!-- HIGH-TECH NEON BUTTON - START (ELECTRIC BLUE) -->
         <Style x:Key="StartButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#1E88E5"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#0A1E3F"/>
+            <Setter Property="Foreground" Value="#00E5FF"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#00E5FF"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -72,27 +82,32 @@
                                 <ScaleTransform ScaleX="1" ScaleY="1"/>
                             </Grid.RenderTransform>
                             <Border x:Name="BackBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="10"
-                                Padding="20,10"/>
-                            <ContentPresenter HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="16,8">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#00E5FF" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#2196F3"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00E5FF"/>
+                                <Setter Property="Foreground" Value="#07090E"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00B8D4"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -102,14 +117,15 @@
             </Setter>
         </Style>
 
-        <!-- Modern Dark Button Style - Pause (Đỏ) -->
+        <!-- HIGH-TECH NEON BUTTON - PAUSE (CRIMSON RED) -->
         <Style x:Key="PauseButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#E63946"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#3D0A14"/>
+            <Setter Property="Foreground" Value="#FF0055"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#FF0055"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -118,27 +134,32 @@
                                 <ScaleTransform ScaleX="1" ScaleY="1"/>
                             </Grid.RenderTransform>
                             <Border x:Name="BackBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="10"
-                                Padding="20,10"/>
-                            <ContentPresenter HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="16,8">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#FF0055" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#F44336"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#FF0055"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="1.08" ScaleY="1.08"/>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="BackBorder" Property="Background" Value="#C62828"/>
+                                <Setter TargetName="BackBorder" Property="Background" Value="#CC0044"/>
                                 <Setter TargetName="ButtonRoot" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -150,15 +171,19 @@
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="117*"/>
-            <ColumnDefinition Width="233*"/>
-        </Grid.ColumnDefinitions>
-        <!-- Header -->
-        <Border Height="60" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Grid.ColumnSpan="2">
-            <Grid Margin="20,0" VerticalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="65"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP CYBER HEADER -->
+        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1">
+            <Border.Effect>
+                <DropShadowEffect Color="#00E5FF" BlurRadius="12" ShadowDepth="1" Opacity="0.3"/>
+            </Border.Effect>
+
+            <Grid Margin="20,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -166,315 +191,282 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Bên trái -->
+                <!-- System Branding -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
+                    <TextBlock Text="⚡" FontSize="20" Foreground="#00E5FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="ORDER CHECK SYSTEM" 
+                               FontWeight="Black" 
+                               FontSize="20" 
+                               Foreground="#FFFFFF"
+                               VerticalAlignment="Center"/>
+                    <Border Background="#00E5FF" Padding="5,2" Margin="12,0,0,0" CornerRadius="2" VerticalAlignment="Center">
+                        <TextBlock Text="SYS_ONLINE" FontSize="9" FontWeight="Bold" Foreground="#07090E"/>
+                    </Border>
+                </StackPanel>
 
-                <TextBlock Grid.Column="0"
-                   Margin="20,0,30,0"
-                   VerticalAlignment="Center"
-                   FontWeight="Bold"
-                   FontSize="20"
-                   Text="Order Check System"/>
-
-                <!-- Button Mở Ảnh -->
+                <!-- Action Button: Open -->
                 <Button Grid.Column="1"
                         x:Name="btn_lib"
-                        Content="📁 Mở Ảnh"
-                        Width="150"
-                        Height="45"
+                        Content="[📂] MO ANH"
+                        Width="140"
+                        Height="40"
                         Style="{StaticResource OpenButtonStyle}"
-                        Click="btn_lib_Click"
-                        Margin="0,0,15,0"/>
+                        Click="btn_lib_Click"/>
 
-                <!-- Cột * sẽ đẩy 2 nút bên phải -->
-                
-
-                <!-- Bên phải -->
-                <Button Grid.Column="4"
+                <!-- Action Buttons: Controls -->
+                <Button Grid.Column="3"
                         x:Name="btn_start"
-                        Content="▶ START"
-                        Width="150"
-                        Height="45"
+                        Content="▶ START_PROC"
+                        Width="140"
+                        Height="40"
                         Style="{StaticResource StartButtonStyle}"
                         Click="btn_start_Click"
-                        Margin="15,0,15,0"/>
+                        Margin="15,0,0,0"/>
 
-                <!-- Button PAUSE -->
-                <Button Grid.Column="5"
+                <Button Grid.Column="4"
                         x:Name="btn_pause"
-                        Content="⏸ PAUSE"
-                        Width="150"
-                        Height="45"
+                        Content="⏸ PAUSE_PROC"
+                        Width="140"
+                        Height="40"
                         Style="{StaticResource PauseButtonStyle}"
                         Click="btn_Pause_Click"
-                        Margin="15,0,0,0"/>
+                        Margin="12,0,0,0"/>
             </Grid>
-
         </Border>
 
-        <!-- Main Content -->
-        <Grid Margin="0,60,0,0" Grid.ColumnSpan="2">
+        <!-- MAIN DASHBOARD CONTENT -->
+        <Grid Grid.Row="1" Margin="15">
             <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
-                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="3*"/>
+                <RowDefinition Height="2*"/>
             </Grid.RowDefinitions>
 
-            <!-- Top Section: Expandable Order List -->
-            <Grid Grid.Row="0" Margin="15,15,15,7">
-                <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4">
-                    <StackPanel>
-                        <!-- Header -->
-                        
-                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
-                            <TextBlock Text="New Orders (Click to expand PO details)" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
-                        </Border>
+            <!-- TOP PANEL: EXPANDABLE ORDERS DATA MATRIX -->
+            <Border Grid.Row="0" Background="#0D111A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                        <!-- Column Headers -->
-                        <Border Background="#F0F0F0" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="5">
-                            <Grid Height="35">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="30"/>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="180"/>
-                                    <ColumnDefinition Width="180"/>
-                                    <ColumnDefinition Width="160"/>
-                                    <ColumnDefinition Width="140"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                    <!-- Panel Header -->
+                    <Border Grid.Row="0" Background="#141B2D" BorderBrush="#00E5FF" BorderThickness="2,0,0,1" Padding="15,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="/// BATCH OPERATIONS MATRIX" FontSize="12" FontWeight="Black" Foreground="#00E5FF"/>
+                            <TextBlock Text=" (Click row to expand PO nodes)" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+                    </Border>
 
-                                <TextBlock Grid.Column="0" Text="" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="ID" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="TerminalID" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" Text="Machine" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="4" Text="Start" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="5" Text="Msnv" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="6" Text="Shift" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="7" Text="Total PO" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                <TextBlock Grid.Column="8" Text="Complate" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="9" Text="DateCreated" FontSize="11" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center"/>
+                    <!-- Table Column Headers -->
+                    <Border Grid.Row="1" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="8,4">
+                        <Grid Height="30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                            </Grid>
-                        </Border>
+                            <TextBlock Grid.Column="1" Text="ID" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="TERMINAL_ID" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="3" Text="MACHINE" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="4" Text="START_TIME" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="5" Text="MSNV" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="6" Text="SHIFT" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="7" Text="TOTAL_PO" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="8" Text="STATUS" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="9" Text="DATE_CREATED" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="10" Text="numRetry" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="11" Text="Description" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
 
-                        <!-- TreeView with Expandable Items -->
-                        <TreeView x:Name="OrderTreeView" 
-                                 Margin="0"
-                                 ItemsSource="{Binding BatchInputHistories}"
-                                 BorderThickness="0"
-                                 Background="White"
-                                  Height="400"
-                                 Padding="0">
-                            <TreeView.ItemTemplate>
-                                <HierarchicalDataTemplate ItemsSource="{Binding ListPO}">
-                                    <!-- Batch Item (Parent) -->
-                                    <Border Padding="0" Margin="0,1" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                    <!-- TreeView Matrix -->
+                    <TreeView Grid.Row="2"
+                              x:Name="OrderTreeView" 
+                              ItemsSource="{Binding BatchInputHistories}"
+                              BorderThickness="0"
+                              Background="Transparent"
+                              Padding="0">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding ListPO}">
+                                <!-- Parent Row (Batch Item) -->
+                                <Border Padding="0" Margin="0,1" BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#0D111A"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Running">
+                                                    <Setter Property="Background" Value="#2A2400"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Success">
+                                                    <Setter Property="Background" Value="#0A2A18"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                    <Setter Property="Background" Value="#3D0A14"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
 
-                                        <Border.Style>
-                                            <Style TargetType="Border">
+                                    <Grid Background="Transparent" Height="38">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="50"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                                <Setter Property="Background"
-                                                    Value="White"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#00FF99" VerticalAlignment="Center" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding TerminalID}" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Machine}" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding start}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="5" Text="{Binding Msnv}" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="6" Text="{Binding Shift}" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="7" Text="{Binding ListPO.Count}" FontSize="11" Foreground="#00E5FF" VerticalAlignment="Center" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="8" Text="{Binding isComplate}" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="9" Text="{Binding DateCreated}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="10" Text="{Binding numRetry}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="11" Text="{Binding description}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
 
-                                                <Style.Triggers>
+                                <!-- Child Row Template (PO Item) -->
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="0" Margin="0" BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+                                            <Grid Background="#06090F" Height="32">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="50"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
 
-                                                    <DataTrigger Binding="{Binding Status}"
-                                                            Value="Running">
-                                                        <Setter Property="Background"
-                                                                Value="#FFF9C4"/>
-                                                    </DataTrigger>
+                                                <TextBlock Grid.Column="0" Text="└─" Foreground="#00E5FF" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Po}" FontSize="11" Foreground="#00FF99" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding IDGroup}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding isComplate}" FontSize="11" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding desPO}" FontSize="11" Foreground="#00E5FF" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </Border>
 
-                                                    <DataTrigger Binding="{Binding Status}"
-                                                                Value="Success">
-                                                        <Setter Property="Background"
-                                                            Value="#C8E6C9"/>
-                                                    </DataTrigger>
-
-                                                    <DataTrigger Binding="{Binding Status}"
-                                                        Value="Error">
-                                                        <Setter Property="Background"
-                                                            Value="#FFCDD2"/>
-                                                    </DataTrigger>
-
-                                                </Style.Triggers>
-
-                                            </Style>
-                                        </Border.Style>
-                                        <Grid Background="Transparent" Height="40">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30"/>
-                                                <ColumnDefinition Width="100"/>
-                                                <ColumnDefinition Width="180"/>
-                                                <ColumnDefinition Width="180"/>
-                                                <ColumnDefinition Width="160"/>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#333" VerticalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding TerminalID}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Machine}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="4" Text="{Binding start}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="5" Text="{Binding Msnv}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="6" Text="{Binding Shift}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="7" Text="{Binding ListPOs.Count}" FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                            <TextBlock Grid.Column="8" Text="{Binding isComplate}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="9" Text="{Binding DateCreated}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- PO Child Items Template -->
-                                    <HierarchicalDataTemplate.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="0" Margin="0,0" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                                <Grid Background="#F9F9F9" Height="35">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="30"/>
-                                                        <ColumnDefinition Width="50"/>
-                                                        <ColumnDefinition Width="90"/>
-                                                        <ColumnDefinition Width="90"/>
-                                                        <ColumnDefinition Width="80"/>
-                                                        <ColumnDefinition Width="70"/>
-                                                        <ColumnDefinition Width="60"/>
-                                                        <ColumnDefinition Width="120"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <TextBlock Grid.Column="0" Text="├─" Foreground="#999" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding ID}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Po}" FontSize="11" Foreground="#666" VerticalAlignment="Center" FontWeight="Bold"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding IDGroup}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="4" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="5" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="6" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="7" Text="" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </HierarchicalDataTemplate.ItemTemplate>
-                                </HierarchicalDataTemplate>
-                            </TreeView.ItemTemplate>
-                        </TreeView>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- Bottom Section: Chart and Log -->
-            <Grid Grid.Row="1" Margin="15,7,15,15">
+            <!-- BOTTOM SECTION: METRICS & CONSOLE LOG -->
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*"/>
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Chart Section -->
-                <Border Background="White" Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,7,0">
-                    <StackPanel>
-                        <!-- Header -->
-                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
-                            <TextBlock Text="Statistics" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
+                <!-- CHART / TELEMETRY PANEL -->
+                <Border Grid.Column="0" Background="#0D111A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Margin="0,0,7,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#141B2D" BorderBrush="#00E5FF" BorderThickness="2,0,0,1" Padding="15,10">
+                            <TextBlock Text="/// TELEMETRY &amp; REALTIME METRICS" FontSize="12" FontWeight="Black" Foreground="#00E5FF"/>
                         </Border>
 
-                        <!-- Chart -->
-                        <Grid Background="#FAFAFA" Margin="0">
-                            <Grid Height="200" >
-                                <lvc:CartesianChart Series="{Binding Series}"
-                            XAxes="{Binding XAxes}"
-                            YAxes="{Binding YAxes}" />
-                            </Grid>
-                        </Grid>
-                    </StackPanel>
+                        <!--<Grid Grid.Row="1" Background="#0A0E17" Margin="10">
+                            <lvc:CartesianChart Series="{Binding Series}"
+                                                XAxes="{Binding XAxes}"
+                                                YAxes="{Binding YAxes}" />-->
+                        <!--</Grid>-->
+                    </Grid>
                 </Border>
 
-                <!-- Log Section -->
-                <Border Background="White" Grid.Column="1" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="7,0,0,0">
-                    <StackPanel>
-                        <!-- Header -->
-                        <Border Background="#F9F9F9" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="15">
-                            <TextBlock Text="Error Log" FontSize="14" FontWeight="Bold" Foreground="#333333"/>
+                <!-- SYSTEM CONSOLE / LOG PANEL -->
+                <Border Grid.Column="1" Background="#0D111A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Margin="7,0,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#141B2D" BorderBrush="#FF0055" BorderThickness="2,0,0,1" Padding="15,10">
+                            <TextBlock Text="/// SYSTEM DIAGNOSTICS &amp; EVENT LOG" FontSize="12" FontWeight="Black" Foreground="#FF0055"/>
                         </Border>
 
-                        <!-- Log Text -->
-                        <ListBox ItemsSource="{Binding Log}"
-                                 Height="200"
-                                 BorderThickness="0">
-
+                        <ListBox Grid.Row="1" 
+                                 ItemsSource="{Binding Log}"
+                                 Background="#0A0E17"
+                                 BorderThickness="0"
+                                 Padding="5">
                             <ListBox.ItemTemplate>
-
                                 <DataTemplate>
-
-                                    <StackPanel Orientation="Horizontal" Margin="3">
-
-                                        <TextBlock FontSize="16">
-
+                                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                                        <!-- Status Indicator Icon -->
+                                        <TextBlock FontSize="13" VerticalAlignment="Center">
                                             <TextBlock.Style>
-
                                                 <Style TargetType="TextBlock">
-
-                                                    <Setter Property="Text"
-                                    Value="⏳"/>
-
+                                                    <Setter Property="Text" Value="[BUSY]"/>
+                                                    <Setter Property="Foreground" Value="#FFB703"/>
                                                     <Style.Triggers>
-
-                                                        <DataTrigger Binding="{Binding Status}"
-                                             Value="Success">
-
-                                                            <Setter Property="Text"
-                                            Value="✔"/>
-
-                                                            <Setter Property="Foreground"
-                                            Value="Green"/>
-
+                                                        <DataTrigger Binding="{Binding Status}" Value="Success">
+                                                            <Setter Property="Text" Value="[OK]"/>
+                                                            <Setter Property="Foreground" Value="#00FF99"/>
                                                         </DataTrigger>
-
-                                                        <DataTrigger Binding="{Binding Status}"
-                                             Value="Error">
-
-                                                            <Setter Property="Text"
-                                            Value="✖"/>
-
-                                                            <Setter Property="Foreground"
-                                            Value="Red"/>
-
+                                                        <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                            <Setter Property="Text" Value="[ERR]"/>
+                                                            <Setter Property="Foreground" Value="#FF0055"/>
                                                         </DataTrigger>
-
-                                                        <DataTrigger Binding="{Binding Status}"
-                                             Value="Running">
-
-                                                            <Setter Property="Text"
-                                            Value="⏳"/>
-
-                                                            <Setter Property="Foreground"
-                                            Value="Orange"/>
-
+                                                        <DataTrigger Binding="{Binding Status}" Value="Running">
+                                                            <Setter Property="Text" Value="[RUN]"/>
+                                                            <Setter Property="Foreground" Value="#00E5FF"/>
                                                         </DataTrigger>
-
                                                     </Style.Triggers>
-
                                                 </Style>
-
                                             </TextBlock.Style>
-
                                         </TextBlock>
 
+                                        <!-- Timestamp -->
                                         <TextBlock Margin="10,0,0,0"
-                           Text="{Binding Time}"
-                           Foreground="Gray"/>
+                                                   Text="{Binding Time}"
+                                                   Foreground="#64748B"
+                                                   FontFamily="Consolas"
+                                                   VerticalAlignment="Center"/>
 
+                                        <!-- Log Message Content -->
                                         <TextBlock Margin="10,0,0,0"
-                           Text="{Binding Message}"/>
-
+                                                   Text="{Binding Message}"
+                                                   Foreground="#E2E8F0"
+                                                   FontFamily="Consolas"
+                                                   VerticalAlignment="Center"/>
                                     </StackPanel>
-
                                 </DataTemplate>
-
                             </ListBox.ItemTemplate>
-
                         </ListBox>
-                    </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>

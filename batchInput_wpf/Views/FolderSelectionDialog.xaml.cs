@@ -1,22 +1,9 @@
 ﻿using batchInput_wpf.Helper;
 using batchInput_wpf.Model;
 using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace batchInput_wpf.Views
 {
@@ -73,7 +60,7 @@ namespace batchInput_wpf.Views
                 var newScreen = new MainWindow();
                 newScreen.Show();
                 this.Close();
-                
+
             }
             else
             {
