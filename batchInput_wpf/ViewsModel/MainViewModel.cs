@@ -1,14 +1,13 @@
 ﻿using batchInput_wpf.Helper;
 using batchInput_wpf.Model;
 using batchInput_wpf.Service;
-using LiveChartsCore;
-using LiveChartsCore.SkiaSharpView;
 using Microsoft.Playwright;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -28,7 +27,6 @@ namespace batchInput_wpf.ViewsModel
             _service = new BatchAPIService();
             _itemSaveConfig = _myFileHelper.ReadJson();
             _ = LoadBatchInput();
-            LoadChart();
         }
 
         public async Task InitializeAsync()
@@ -39,113 +37,6 @@ namespace batchInput_wpf.ViewsModel
             //await Task.CompletedTask;
         }
 
-        //private void LoadChart()
-        //{
-        //    Debug.WriteLine("LOAD CHART VM: " + GetHashCode());
-        //    try
-        //    {
-        //        DateTime date = DateTime.Now;
-        //        //List<ItemGetCount> resultCount = await _service.GetCount();
-
-        //        //lay so lieu 
-        //        //var title = resultCount.Select(x => x.date.ToString("dd-MM")).ToArray();
-        //        //var Soluong = resultCount.Select(x => (double)x.count).ToArray();
-        //        var Soluong = new double[] { 0, 1, 5, 1, 3, 50, 6 };
-
-        //        // Kh?i t?o d? li?u bi?u d?
-        //        Series = new ISeries[]
-        //        {
-        //        new ColumnSeries<double>
-        //        {
-        //            Name = "Số lượng",
-        //            //Values = new double[] { 100, 230, 302, 400, 212, 312, 422 }
-        //            Values = Soluong
-        //        }
-        //        };
-
-        //        XAxes = new Axis[]
-        //        {
-        //        new Axis
-        //        {
-        //            Labels = new string[] { date.AddDays(-6).ToString("dd/MM"), date.AddDays(-5).ToString("dd/MM"), date.AddDays(-4).ToString("dd/MM"), date.AddDays(-3).ToString("dd/MM"), date.AddDays(-2).ToString("dd/MM"), date.AddDays(-1).ToString("dd/MM"), date.ToString("dd/MM")},
-        //            //Labels = title,
-        //            LabelsRotation = 0
-        //        }
-        //        };
-
-        //        YAxes = new Axis[]
-        //        {
-        //        new Axis
-        //        {
-        //            MinLimit = 0
-        //        }
-        //        };
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        MessageBox.Show(ex.Message);
-        //    }
-        //}
-
-        private void LoadChart()
-        {
-            try
-            {
-                DateTime date = DateTime.Now;
-
-                var Soluong = new double[]
-                {
-            0, 1, 5, 1, 3, 50, 6
-                };
-
-                Series = new ISeries[]
-                {
-            new ColumnSeries<double>
-            {
-                Name = "Số lượng",
-                Values = Soluong
-            }
-                };
-
-                XAxes = new Axis[]
-                {
-            new Axis
-            {
-                Labels = new string[]
-                {
-                    date.AddDays(-6).ToString("dd/MM"),
-                    date.AddDays(-5).ToString("dd/MM"),
-                    date.AddDays(-4).ToString("dd/MM"),
-                    date.AddDays(-3).ToString("dd/MM"),
-                    date.AddDays(-2).ToString("dd/MM"),
-                    date.AddDays(-1).ToString("dd/MM"),
-                    date.ToString("dd/MM")
-                },
-                LabelsRotation = 0
-            }
-                };
-
-                YAxes = new Axis[]
-                {
-            new Axis
-            {
-                MinLimit = 0
-            }
-                };
-
-                Debug.WriteLine("Series Count: " + Series.Length);
-                Debug.WriteLine("XAxes Count: " + XAxes.Length);
-                Debug.WriteLine("YAxes Count: " + YAxes.Length);
-
-                OnPropertyChanged(nameof(Series));
-                OnPropertyChanged(nameof(XAxes));
-                OnPropertyChanged(nameof(YAxes));
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
-        }
 
         private async Task LoadBatchInput()
         {
@@ -179,14 +70,14 @@ namespace batchInput_wpf.ViewsModel
                             uiItem.Status = ItemStatus.Running;
                         }
 
-                        //await event_auto_web(item);
-                        //item.Status = ItemStatus.Running;
+
                         bool result_run = false;
                         int count_err = 0;
                         do
                         {
                             var startLog_at = AddLog("Bắt đầu AutoClick BatchInput item: " + item.ID);
                             result_run = await event_auto_web(item);
+                            await _service.update_numRetry(item.ID);
                             if (result_run)
                             {
                                 uiItem.Status = ItemStatus.Success;
@@ -201,7 +92,9 @@ namespace batchInput_wpf.ViewsModel
                         if (count_err >= 3)
                         {
                             string parse_json = JsonSerializer.Serialize(item);
-                            File.WriteAllText($@"C:\Users\KVH_IT_Mem_Hiep\MISUMI Group Inc\IT Program - 28.Log_err_batchInput\{item.ID}_{DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss")}_err.json", parse_json);
+                            //File.WriteAllText($@"C:\Users\KVH_IT_Mem_Hiep\MISUMI Group Inc\IT Program - 28.Log_err_batchInput\{item.ID}_{DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss")}_err.json", parse_json);
+                            File.WriteAllText($@"{_itemSaveConfig.pathLogErr}\{item.ID}_{DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss")}_err.json", parse_json);
+
                         }
                     }
                 }
@@ -211,6 +104,109 @@ namespace batchInput_wpf.ViewsModel
 
             }
         }
+
+        //private async Task LoadBatchInput()
+        //{
+        //    while (true)
+        //    {
+        //        try
+        //        {
+        //            // 1. Tải danh sách tổng thể
+        //            var result = await _service.GetAllProductAsync();
+
+        //            // Dùng BeginInvoke để không làm khóa UI
+        //            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+        //            {
+        //                BatchInputHistories.Clear();
+        //                foreach (var item in result)
+        //                {
+        //                    BatchInputHistories.Add(item);
+        //                }
+        //            }));
+
+        //            // 2. Lấy danh sách các item chưa hoàn thành
+        //            var result_notcomplate = await _service.GetProduct_notComplate_Async();
+
+        //            if (IsRunning && result_notcomplate != null && result_notcomplate.Count > 0)
+        //            {
+        //                // Cấu hình tối đa 3 luồng chạy song song
+        //                var parallelOptions = new ParallelOptions
+        //                {
+        //                    MaxDegreeOfParallelism = 3
+        //                };
+
+        //                await Parallel.ForEachAsync(result_notcomplate, parallelOptions, async (item, token) =>
+        //                {
+        //                    if (!IsRunning) return;
+
+        //                    // Tìm UI Item tương ứng
+        //                    var uiItem = BatchInputHistories.FirstOrDefault(x => x.ID == item.ID);
+
+        //                    // Cập nhật trạng thái Running (Không dùng Invoke chờ)
+        //                    if (uiItem != null)
+        //                    {
+        //                        App.Current.Dispatcher.BeginInvoke(new Action(() => uiItem.Status = ItemStatus.Running));
+        //                    }
+
+        //                    bool result_run = false;
+        //                    int count_err = 0;
+
+        //                    do
+        //                    {
+        //                        // Thêm log bất đồng bộ lên UI
+        //                        App.Current.Dispatcher.BeginInvoke(new Action(() =>
+        //                        {
+        //                            AddLog("Bắt đầu AutoClick BatchInput item: " + item.ID);
+        //                        }));
+
+        //                        // Thực thi tác vụ Auto Web (Giải phóng hoàn toàn khỏi UI Thread)
+        //                        result_run = await event_auto_web(item);
+        //                        await _service.update_numRetry(item.ID);
+
+        //                        // Cập nhật trạng thái Success / Error
+        //                        if (uiItem != null)
+        //                        {
+        //                            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+        //                            {
+        //                                uiItem.Status = result_run ? ItemStatus.Success : ItemStatus.Error;
+        //                            }));
+        //                        }
+
+        //                        if (!result_run)
+        //                        {
+        //                            count_err++;
+        //                        }
+
+        //                    } while (!result_run && count_err <= 2);
+
+        //                    Debug.WriteLine($"Item {item.ID} count err: {count_err}");
+
+        //                    // Ghi log lỗi nếu thất bại
+        //                    if (count_err >= 3)
+        //                    {
+        //                        string parse_json = JsonSerializer.Serialize(item);
+        //                        string fileName = $"{item.ID}_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_err.json";
+        //                        string filePath = Path.Combine(_itemSaveConfig.pathLogErr, fileName);
+
+        //                        if (!Directory.Exists(_itemSaveConfig.pathLogErr))
+        //                        {
+        //                            Directory.CreateDirectory(_itemSaveConfig.pathLogErr);
+        //                        }
+
+        //                        await File.WriteAllTextAsync(filePath, parse_json);
+        //                    }
+        //                });
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Debug.WriteLine("Lỗi trong vòng lặp BatchInput: " + ex.Message);
+        //        }
+
+        //        Console.WriteLine("length: " + BatchInputHistories.Count);
+        //        await Task.Delay(10000);
+        //    }
+        //}
 
         //log 
         private ObservableCollection<LogItem> _log = new ObservableCollection<LogItem>();
@@ -224,6 +220,42 @@ namespace batchInput_wpf.ViewsModel
             }
         }
 
+        //public LogItem AddLog(string message, LogStatus status = LogStatus.Running)
+        //{
+        //    App.Current.Dispatcher.BeginInvoke(new Action(() =>
+        //    {
+        //        var item = new LogItem()
+        //        {
+        //            Message = message,
+        //            Status = status
+        //        };
+
+        //        Log.Insert(0, item);
+
+        //        if (Log.Count >= 100) { Log.RemoveAt(50); }
+
+        //        //ghi vao file log 
+        //        string logFolder = Path.Combine(_itemSaveConfig.pathSaveImg, "LOG");
+        //        string logFilePath = Path.Combine(logFolder, "log.txt");
+
+        //        Directory.CreateDirectory(logFolder); // Tạo thư mục nếu chưa tồn tại
+        //        string MessageLog = $"[{DateTime.Now.ToString("HH:mm:ss")}] - {message}";
+        //        if (!File.Exists(logFilePath))
+        //        {
+        //            File.WriteAllText(logFilePath, MessageLog + Environment.NewLine);
+        //        }
+        //        else
+        //        {
+        //            var oldLines = File.ReadAllLines(logFilePath).ToList();
+        //            oldLines.Insert(0, MessageLog);
+        //            File.WriteAllLines(logFilePath, oldLines);
+        //        }
+
+        //        return item;
+        //    }));
+
+        //}
+
         public LogItem AddLog(string message, LogStatus status = LogStatus.Running)
         {
             var item = new LogItem()
@@ -232,47 +264,41 @@ namespace batchInput_wpf.ViewsModel
                 Status = status
             };
 
-            Log.Insert(0, item);
+            // 1. Cập nhật UI Collection trên UI Thread (Bất đồng bộ)
+            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Log.Insert(0, item);
 
-            if (Log.Count >= 100) { Log.RemoveAt(50); }
+                if (Log.Count >= 100)
+                {
+                    Log.RemoveAt(Log.Count - 1); // Xóa phần tử cũ nhất ở cuối danh sách
+                }
+            }));
 
+            // 2. Ghi File Log chạy ngầm (Background Thread) - Nối chuỗi vào cuối file để tối ưu
+            Task.Run(async () =>
+            {
+                try
+                {
+                    string logFolder = Path.Combine(_itemSaveConfig.pathSaveImg, "LOG");
+                    string logFilePath = Path.Combine(logFolder, "log.txt");
+
+                    Directory.CreateDirectory(logFolder);
+
+                    string messageLog = $"[{DateTime.Now:HH:mm:ss}] - {message}{Environment.NewLine}";
+
+                    // Append chuỗi mới vào cuối file (Nhanh gấp hàng trăm lần việc ReadAllLines rồi ghi đè)
+                    await File.AppendAllTextAsync(logFilePath, messageLog, Encoding.UTF8);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Lỗi ghi file log: " + ex.Message);
+                }
+            });
+
+            // Trả về item ngay lập tức cho hàm gọi
             return item;
         }
-
-        private ISeries[] _series;
-        private Axis[] _xAxes;
-        private Axis[] _yAxes;
-
-        public ISeries[] Series
-        {
-            get => _series;
-            set
-            {
-                _series = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public Axis[] XAxes
-        {
-            get => _xAxes;
-            set
-            {
-                _xAxes = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public Axis[] YAxes
-        {
-            get => _yAxes;
-            set
-            {
-                _yAxes = value;
-                OnPropertyChanged();
-            }
-        }
-
 
         #region INotifyPropertyChanged Implementation
         public event PropertyChangedEventHandler PropertyChanged;
@@ -291,7 +317,7 @@ namespace batchInput_wpf.ViewsModel
                 var playwright = await Playwright.CreateAsync();
                 var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
-                    Headless = false
+                    Headless = true
                 });
 
                 var page = await browser.NewPageAsync();
@@ -322,6 +348,7 @@ namespace batchInput_wpf.ViewsModel
                                             {
                                                 AddLog("Hoàn thành Start item: " + itemBatch.ID, LogStatus.Success);
                                                 await Deletefolder(itemBatch);
+                                                await _service.update_des(itemBatch.ID, "DONE");
                                                 return await AT_end_PO(page, itemBatch);
                                             }
                                             else
@@ -349,6 +376,7 @@ namespace batchInput_wpf.ViewsModel
                                     {
                                         AddLog("Đã có lỗi tại nhập list PO ", LogStatus.Error);
                                         await ScreenShot(page, itemBatch);
+                                        await _service.update_des(itemBatch.ID, "Ðã có lỗi tại nhập List PO.");
                                         await page.CloseAsync();
                                         //AT_end_PO(wait, driver);
                                     }
@@ -356,6 +384,7 @@ namespace batchInput_wpf.ViewsModel
                                 else
                                 {
                                     AddLog("Đã có lỗi tại nhập PO đại diện bước 3", LogStatus.Error);
+                                    await _service.update_des(itemBatch.ID, "Ðã có lỗi tại nhập PO đại diện.");
                                     await ScreenShot(page, itemBatch);
                                     await page.CloseAsync();
                                 }
@@ -365,11 +394,14 @@ namespace batchInput_wpf.ViewsModel
                                 AddLog("Đã có lỗi tại nhập Operator ID bước 2", LogStatus.Error);
                                 await ScreenShot(page, itemBatch);
                                 await page.CloseAsync();
+                                await _service.update_des(itemBatch.ID, "Ðã có lỗi tại nhập Operator & Shift");
+
                             }
                         }
                         else
                         {
                             AddLog("Đã có lỗi tại nhập Terminal ID bước 1", LogStatus.Error);
+                            await _service.update_des(itemBatch.ID, "Đã có lỗi tại nhập Terminal ID bước 1");
                             await ScreenShot(page, itemBatch);
                             await page.CloseAsync();
                         }
@@ -514,39 +546,57 @@ namespace batchInput_wpf.ViewsModel
                     {
                         for (int i = 1; i < listPo.Count; i++)
                         {
-                            await Task.Delay(3000);
-                            //lay gia tri count hien tai
-                            int coutNow = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
-
-
-                            await page.ClickAsync("#lblDebug");
-                            AddLog($"Tiến hành nhập PO thứ {i + 1}: {listPo[i].Po}");
-                            await page.Keyboard.TypeAsync(listPo[i].Po);
-                            //await page.FillAsync("#txtEditPO", listPo[i].Po);
-                            Debug.WriteLine($"{DateTime.Now} - Đã nhấn ENTER");
-                            //await page.ClickAsync("#txtEditPO");
-                            await page.Keyboard.PressAsync("Enter");
-
-
-                            int coutNext = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
-                            if (coutNow >= coutNext)
+                            if (!listPo[i].isComplate)
                             {
-                                AddLog($"PO {listPo[i].Po} không được thêm vào danh sách vì đã tồn tại.", LogStatus.Error);
-                                await page.ClickAsync("#btnCancel");
-                                await Task.Delay(2000);
-                            }
+                                await Task.Delay(3000);
+                                //lay gia tri count hien tai
+                                int coutNow = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
 
-                            //kiem tra ket qua sau khi xoa 
-                            await page.WaitForFunctionAsync(
-                                "() => document.getElementById('txtMsg').innerText.trim() !== ''");
+                                await page.ClickAsync("#lblDebug");
+                                AddLog($"Tiến hành nhập PO thứ {i + 1}: {listPo[i].Po}");
+                                await page.Keyboard.TypeAsync(listPo[i].Po);
+                                //await page.FillAsync("#txtEditPO", listPo[i].Po);
+                                //await page.ClickAsync("#txtEditPO");
+                                await page.Keyboard.PressAsync("Enter");
+                                await Task.Delay(4000);
 
-                            string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
 
-                            Debug.WriteLine(messageInputPO);
-                            if (messageInputPO.Contains("is locked"))
-                            {
-                                AddLog(messageInputPO + listPo[i].Po, LogStatus.Error);
-                                //return false;
+                                int coutNext = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+
+
+
+                                //kiem tra ket qua sau khi xoa 
+                                await page.WaitForFunctionAsync(
+                                    "() => document.getElementById('txtMsg').innerText.trim() !== ''");
+
+                                string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
+
+                                Debug.WriteLine(messageInputPO);
+
+
+                                if (coutNow >= coutNext)
+                                {
+                                    if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not"))
+                                    {
+                                        AddLog(messageInputPO + listPo[i].Po, LogStatus.Error);
+                                        await _service.update_desPO(listPo[i].ID,messageInputPO);
+                                        //await _service.update(listPo[i].ID, messageInputPO);
+
+                                        //return false;
+                                    }
+                                    else
+                                    {
+                                        AddLog($"PO {listPo[i].Po} không được thêm vào danh sách vì đã tồn tại.", LogStatus.Error);
+                                        await _service.UpdateSTTPO(listPo[i].ID, true);
+                                        await page.ClickAsync("#btnCancel");
+                                        await Task.Delay(2000);
+                                    }
+                                }
+                                else
+                                {
+                                    await _service.UpdateSTTPO(listPo[i].ID, true);
+                                    await Task.Delay(1000);
+                                }
                             }
 
                         }
@@ -563,12 +613,20 @@ namespace batchInput_wpf.ViewsModel
                     }
                     await Task.Delay(2000);
                     await page.ClickAsync("#btnPOReadFinish");
-                    await page.WaitForFunctionAsync(
-                        "() => document.title.includes('Daily Report work input batch')");
+                    await Task.Delay(4000);
+                    //await page.ClickAsync("#btnCancel");
+                    //await page.WaitForFunctionAsync(
+                    //    "() => document.title.includes('Daily Report work input batch')");
                     if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
                     {
                         return true;
                     }
+                    else
+                    {
+                        await page.ClickAsync("#btnCancel");
+                    }
+                    await page.WaitForFunctionAsync(
+                        "() => document.title.includes('Daily Report work input batch')");
                     AddLog("Nhấn cho tất cả các item hoàn thành ", LogStatus.Success);
                     return true;
                 }
@@ -606,14 +664,29 @@ namespace batchInput_wpf.ViewsModel
 
                     await Task.Delay(2000);
                     string message = await page.Locator("#txtMsg").InnerTextAsync();
-                    if (message.Contains("is locked"))
+                    if (message.Contains("is locked")|| message.Contains("not exist")|| message.Contains("PO(Select BatchID)"))
                     {
-                        AddLog(message, LogStatus.Error);
-                        return false;
+                        await page.ClickAsync("#txtPO");
+                        AddLog($"Ðã vào {await page.TitleAsync()}", LogStatus.Success);
+                        await page.ClickAsync("#lblStatus");
+                        await _service.update_desPO(listPo[0].ID, message);
+                        string s_result2 = await page.Locator("#lblDebug").InnerTextAsync();
+
+                        await page.Keyboard.PressAsync("Backspace");//xoa toàn b? label tru?c dó
+                        await page.Keyboard.TypeAsync(listPo[1].Po);
+                        await page.Keyboard.PressAsync("Enter");
+                        string message2 = await page.Locator("#txtMsg").InnerTextAsync();
+                        if (message2.Contains("is locked") || message2.Contains("not exist") || message2.Contains("PO(Select BatchID)"))
+                        {
+                            return false;
+                        }
+                        //AddLog(message, LogStatus.Error);
+                        //return false;
                     }
                     else
                     {
                         AddLog(message, LogStatus.Success);
+                        await _service.UpdateSTTPO(listPo[0].ID, true);
                         return true;
                     }
                 }
@@ -777,6 +850,17 @@ namespace batchInput_wpf.ViewsModel
             {
                 _selectedFolder = value;
                 Debug.WriteLine("OnPropertyChanged SelectedFolder: " + value);
+                OnPropertyChanged();
+            }
+        }
+
+        private int _CountList;
+        public int CountList
+        {
+            get => _CountList;
+            set
+            {
+                _CountList = value;
                 OnPropertyChanged();
             }
         }

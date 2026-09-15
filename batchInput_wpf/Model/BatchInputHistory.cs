@@ -17,7 +17,11 @@ namespace batchInput_wpf.Model
         public string Shift { get; set; } = string.Empty;
         public bool isComplate { get; set; } = false;
         public DateTime? DateCreated { get; set; } = DateTime.Now;
+        public int numRetry { get; set; } = 0;
+        public string description { get; set; } = string.Empty;
         public List<ListPO> ListPO { get; set; } = new();
+
+        //public int coutListPo { get; set; } = ListPO.Count;
 
         private ItemStatus _status = ItemStatus.Waiting;
 
