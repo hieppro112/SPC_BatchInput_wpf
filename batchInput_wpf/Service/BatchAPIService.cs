@@ -12,8 +12,8 @@ namespace batchInput_wpf.Service
         public BatchAPIService()
         {
             _httpClient = new HttpClient();
-            //_httpClient.BaseAddress = new Uri("http://192.168.122.15:5044/"); // Thay đổi URL theo API của bạn
-            _httpClient.BaseAddress = new Uri("http://localhost:5044/"); // Thay đổi URL theo API của bạn
+            _httpClient.BaseAddress = new Uri("http://192.168.122.15:5044/"); // Thay đổi URL theo API của bạn
+            //_httpClient.BaseAddress = new Uri("http://localhost:5044/"); // Thay đổi URL theo API của bạn
         }
 
         public async Task<List<BatchInputHistory>> GetAllProductAsync()
@@ -48,7 +48,7 @@ namespace batchInput_wpf.Service
         {
             try
             {
-                var result = await _httpClient.PutAsync($"api/Batch/Update/{id}?isComplate=true",null);
+                var result = await _httpClient.PutAsync($"api/Batch/Update/isComplate/{id}?isComplate=true",null);
                
             }
             catch(Exception ex)
