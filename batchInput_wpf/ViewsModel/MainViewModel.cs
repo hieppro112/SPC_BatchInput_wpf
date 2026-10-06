@@ -18,8 +18,126 @@ namespace batchInput_wpf.ViewsModel
     public class MainViewModel : BaseViewModel
     {
         private readonly BatchAPIService _service;
-        public ObservableCollection<BatchInputHistory> BatchInputHistories { get; set; } = new ObservableCollection<BatchInputHistory>();
         public ObservableCollection<ListPO> ListPos { get; set; } = new ObservableCollection<ListPO>();
+
+        #region Phan trang (Pagination)
+        // Kich thuoc trang gui cho API - chi tai dung so luong nay moi lan, khong GetAll toan bo bang
+        private const int PageSize = 10;
+
+        private readonly SemaphoreSlim _pageLoadLock = new SemaphoreSlim(1, 1);
+
+        private ObservableCollection<BatchInputHistory> _pagedBatchInputHistories = new ObservableCollection<BatchInputHistory>();
+        public ObservableCollection<BatchInputHistory> PagedBatchInputHistories
+        {
+            get => _pagedBatchInputHistories;
+            private set
+            {
+                _pagedBatchInputHistories = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _currentPage = 1;
+        public int CurrentPage
+        {
+            get => _currentPage;
+            private set
+            {
+                if (_currentPage == value) return;
+                _currentPage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanGoPreviousPage));
+                OnPropertyChanged(nameof(CanGoNextPage));
+            }
+        }
+
+        private int _totalPages = 1;
+        public int TotalPages
+        {
+            get => _totalPages;
+            private set
+            {
+                if (_totalPages == value) return;
+                _totalPages = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanGoPreviousPage));
+                OnPropertyChanged(nameof(CanGoNextPage));
+            }
+        }
+
+        private int _totalItems = 0;
+        public int TotalItems
+        {
+            get => _totalItems;
+            private set
+            {
+                if (_totalItems == value) return;
+                _totalItems = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool CanGoPreviousPage => CurrentPage > 1;
+        public bool CanGoNextPage => CurrentPage < TotalPages;
+
+        // Goi API lay dung 1 trang (pageNumber, pageSize) thay vi keo toan bo bang ve moi lan,
+        // tranh hao ton tai nguyen va giam rui ro voi bang du lieu lon (big data).
+        private async Task RefreshCurrentPageAsync()
+        {
+            await _pageLoadLock.WaitAsync();
+            try
+            {
+                var page = await _service.GetAllProductAsync(CurrentPage, PageSize);
+
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    PagedBatchInputHistories.Clear();
+                    foreach (var item in page.Items)
+                    {
+                        PagedBatchInputHistories.Add(item);
+                    }
+
+                    TotalItems = page.TotalItems;
+                    TotalPages = Math.Max(1, page.TotalPages);
+
+                    if (CurrentPage > TotalPages)
+                    {
+                        CurrentPage = TotalPages;
+                    }
+                });
+            }
+            finally
+            {
+                _pageLoadLock.Release();
+            }
+        }
+
+        public async Task GoToFirstPage()
+        {
+            CurrentPage = 1;
+            await RefreshCurrentPageAsync();
+        }
+
+        public async Task GoToPreviousPage()
+        {
+            if (CurrentPage <= 1) return;
+            CurrentPage--;
+            await RefreshCurrentPageAsync();
+        }
+
+        public async Task GoToNextPage()
+        {
+            if (CurrentPage >= TotalPages) return;
+            CurrentPage++;
+            await RefreshCurrentPageAsync();
+        }
+
+        public async Task GoToLastPage()
+        {
+            CurrentPage = TotalPages;
+            await RefreshCurrentPageAsync();
+        }
+        #endregion
         public ItemSaveConfig _itemSaveConfig;
         private FileHelper _myFileHelper = new FileHelper();
         private int numLengListPO = 0;
@@ -41,41 +159,39 @@ namespace batchInput_wpf.ViewsModel
 
         private async Task LoadBatchInput()
         {
+            _itemSaveConfig = _myFileHelper.ReadJson();
             while (true)
             {
                 try
                 {
                     numLengListPO = 0;
-                    // 1. Tải danh sách tổng thể
-                    var result = await _service.GetAllProductAsync();
-
-                    // Dùng BeginInvoke để không làm khóa UI
-                    App.Current.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        BatchInputHistories.Clear();
-                        foreach (var item in result)
-                        {
-                            BatchInputHistories.Add(item);
-                        }
-                    }));
+                    // 1. Tải đúng trang đang hiển thị (không GetAll toàn bộ bảng)
+                    await RefreshCurrentPageAsync();
 
                     // 2. Lấy danh sách các item chưa hoàn thành
                     var result_notcomplate = await _service.GetProduct_notComplate_Async();
 
                     if (IsRunning && result_notcomplate != null && result_notcomplate.Count > 0)
                     {
-                        // Cấu hình tối đa 3 luồng chạy song song
+                        // Số luồng chạy song song lấy từ cấu hình (nút Config)
                         var parallelOptions = new ParallelOptions
                         {
-                            MaxDegreeOfParallelism = 3
+                            MaxDegreeOfParallelism = Math.Max(1, _itemSaveConfig.MaxThreads)
                         };
-
                         await Parallel.ForEachAsync(result_notcomplate, parallelOptions, async (item, token) =>
                         {
                             if (!IsRunning) return;
 
-                            // Tìm UI Item tương ứng
-                            var uiItem = BatchInputHistories.FirstOrDefault(x => x.ID == item.ID);
+                            // Chỉ có the cập nhật UI nếu item đang nằm trong trang hiển thị hiện tại
+                            // (vì đã chuyển sang phân trang phía server, không còn giữ toàn bộ danh sách ở client).
+                            // Dùng Dispatcher.Invoke (đồng bộ) để đọc PagedBatchInputHistories ngay trên UI thread,
+                            // tránh truy cập ObservableCollection đồng thời từ background thread trong lúc
+                            // UI thread có thể đang Clear()/Add() lại danh sách (gây InvalidOperationException).
+                            BatchInputHistory uiItem = null;
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
+                                uiItem = PagedBatchInputHistories.FirstOrDefault(x => x.ID == item.ID);
+                            });
 
                             // Cập nhật trạng thái Running (Không dùng Invoke chờ)
                             if (uiItem != null)
@@ -112,7 +228,7 @@ namespace batchInput_wpf.ViewsModel
                                     count_err++;
                                 }
 
-                            } while (!result_run && count_err <= 2);
+                            } while (!result_run && count_err < 1);
 
                             Debug.WriteLine($"Item {item.ID} count err: {count_err}");
 
@@ -129,6 +245,7 @@ namespace batchInput_wpf.ViewsModel
                                 }
 
                                 await File.WriteAllTextAsync(filePath, parse_json);
+                                
                             }
                         });
                     }
@@ -136,10 +253,13 @@ namespace batchInput_wpf.ViewsModel
                 catch (Exception ex)
                 {
                     Debug.WriteLine("Lỗi trong vòng lặp BatchInput: " + ex.Message);
+                    AddLog("Lỗi trong vòng lặp BatchInput: " + ex.Message, LogStatus.Error);
+
                 }
 
-                Console.WriteLine("length: " + BatchInputHistories.Count);
-                await Task.Delay(10000);
+                Console.WriteLine("length: " + TotalItems);
+                await Task.Delay(_itemSaveConfig.PollDelaySeconds *1000);
+                AddLog("Reload List", LogStatus.Running);
             }
         }
 
@@ -199,36 +319,54 @@ namespace batchInput_wpf.ViewsModel
             return item;
         }
 
-        #region INotifyPropertyChanged Implementation
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region bat dau autoclick
         private async Task<bool> event_auto_web(BatchInputHistory itemBatch)
         {
-            bool found_tab = false;
             try
             {
-                var playwright = await Playwright.CreateAsync();
-                var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+                numLengListPO = 0;
+                // using/await using: dam bao driver Playwright, browser va context luon duoc
+                // dong khi ham ket thuc (ke ca return som hay nem exception), tranh leak
+                // tien trinh msedge.exe khi app chay lien tuc trong thoi gian dai.
+                using var playwright = await Playwright.CreateAsync();
+                await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
                     Channel = "msedge",
-                    Headless = true
+                    Headless = _itemSaveConfig.HeadlessMode,//lay trong file config gan vao 
+                    Args = new[]
+                    {
+                        "--disable-blink-features=AutomationControlled", // Tắt cờ báo Automation
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-gpu",
+                        "--disable-extensions",
+                        "--mute-audio",
+                        "--disable-background-timer-throttling",
+                        "--disable-backgrounding-occluded-windows",
+                        "--disable-renderer-backgrounding"
+                    }
                 });
+                await using var context = await browser.NewContextAsync();
+                // Xóa thu?c tính navigator.webdriver trên trang
+                await context.AddInitScriptAsync(@"
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                ");
 
-                var page = await browser.NewPageAsync();
+                //var page = await browser.NewPageAsync();
+                var page = await context.NewPageAsync();
+
                 await page.GotoAsync("http://10.4.24.117:8449/LG0100.aspx");
                 if ((await page.TitleAsync()).Contains("Daily Report Login"))
                 {
+                    await _service.update_runTime(itemBatch.ID);
                     await Task.Delay(3000);
                     try
                     {
-                        if (await AT_Login_terminalID(page, itemBatch.TerminalID,itemBatch) == true)
+                        if (await AT_Login_terminalID(page, itemBatch.TerminalID, itemBatch) == true)
                         {
+                            
                             await Task.Delay(3000);
                             if (await AT_Operator_Shift(page, itemBatch))
                             {
@@ -236,12 +374,12 @@ namespace batchInput_wpf.ViewsModel
                                 if (await AT_ScanPO_own(page, itemBatch))
                                 {
                                     await Task.Delay(3000);
-                                    bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO,itemBatch);
+                                    bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO, itemBatch);
                                     await Task.Delay(3000);
                                     if (IscheckList && itemBatch.start)
                                     {
                                         await Task.Delay(3000);
-                                        if (await AT_Click_start(page,itemBatch))
+                                        if (await AT_Click_start(page, itemBatch))
                                         {
                                             await Task.Delay(3000);
                                             if (await AT_Click_startAll(page, itemBatch))
@@ -259,7 +397,7 @@ namespace batchInput_wpf.ViewsModel
                                         }
                                         else
                                         {
-                                            ScreenShot(page, itemBatch);
+                                            await ScreenShot(page, itemBatch);
                                             AddLog($"ID:{itemBatch.ID} Không vào được nơi start ", LogStatus.Error);
                                         }
                                     }
@@ -324,6 +462,7 @@ namespace batchInput_wpf.ViewsModel
                 MessageBox.Show("Đã có lỗi xảy ra :" + ex);
                 return false;
             }
+
         }
 
         private async Task<bool> AT_Click_Finish(IPage page, BatchInputHistory itemBatch)
@@ -348,6 +487,9 @@ namespace batchInput_wpf.ViewsModel
                 int numcheck = 0;
                 while (numcheck<=3)
                 {
+
+                    ////lay thoi gian finish 
+                    //string txt_finish_tb = await page.Locator("#lstBatchSub_txtAreaFinishYmd_1").InnerTextAsync();
                     // 1. L?y toàn b? Text trong th? #txtMsg
                     string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
@@ -362,8 +504,9 @@ namespace batchInput_wpf.ViewsModel
                     numcheck++;
                     await Task.Delay(3000);
                 }
-                
-                AddLog($"ID:{itemBatch.ID} Chưa hoàn thành Finish All PO ", LogStatus.Success);
+
+                await _service.update_des(itemBatch.ID, "Chưa hoàn thành Finish All PO: Đầy đủ thao tác nhưng dã bị treo");
+                AddLog($"ID:{itemBatch.ID} Chưa hoàn thành Finish All PO: Đầy đủ thao tác nhưng đã bị treo  ", LogStatus.Success);
                 return false;
 
                 
@@ -576,10 +719,6 @@ namespace batchInput_wpf.ViewsModel
                                             isCheck = true;
                                             break;
                                         }
-                                        //else
-                                        //{
-                                            
-                                        //}
                                         numCheck++;
                                         await Task.Delay(3000);
                                     }
@@ -594,7 +733,11 @@ namespace batchInput_wpf.ViewsModel
                         }
                     }
 
-                    numLengListPO = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+                    while (numLengListPO == 0)
+                    {
+                        numLengListPO = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+                        await Task.Delay(5000);
+                    }
 
                     AddLog($"ID:{item.ID} Tiến hành nhấn cho tất cả các item");
 
@@ -615,30 +758,37 @@ namespace batchInput_wpf.ViewsModel
 
                     // 2. Ð?nh d?ng l?i van b?n (thay th? chu?i xu?ng dòng n?u c?n)
                     string messageInputPO2 = rawText2.Trim();
-                    if(messageInputPO2.Contains(" Please try again after some time."))
-                    {
-                        await Task.Delay(30000);
-                        if (await btn.IsEnabledAsync())
+                    int numcheck = 0;
+                    //if (messageInputPO2.Contains(" Please try again after some time."))
+                    //{
+                        
+                        while (numcheck <= 3)
                         {
-                            await page.ClickAsync("#btnAllQtyActCopytoTotal");
-                        }
-                        await Task.Delay(2000);
-                        await page.ClickAsync("#btnPOReadFinish");
-                        await Task.Delay(4000);
-                    }
+                            if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
+                            {
+                                    await page.WaitForFunctionAsync(
+                            "() => document.title.includes('Daily Report work input batch')");
+                            AddLog($"ID:{item.ID} Nhấn cho tất cả các item hoàn thành ", LogStatus.Success);
+                            return true;
+                            }
+                            else
+                            {
+                                await Task.Delay(2000);
+                                //if (await btn.IsEnabledAsync())
+                                //{
+                                //    await page.ClickAsync("#btnAllQtyActCopytoTotal");
+                                //}
+                                //await Task.Delay(2000);
+                                //await page.ClickAsync("#btnPOReadFinish");
+                                //await Task.Delay(2000);
+                                await page.ClickAsync("#btnCancel");
+                            }
+                            
 
-                    if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        await page.ClickAsync("#btnCancel");
-                    }
-                    await page.WaitForFunctionAsync(
-                        "() => document.title.includes('Daily Report work input batch')");
-                    AddLog($"ID:{item.ID} Nhấn cho tất cả các item hoàn thành ", LogStatus.Success);
-                    return true;
+                            numcheck++;
+                            await Task.Delay(5000);
+                        }
+                        return false;
                 }
                 return false;
             }
@@ -783,6 +933,7 @@ namespace batchInput_wpf.ViewsModel
                     await _service.update_des(ItemBatch.ID, "START DONE");
                     await page.CloseAsync();
                     return true;
+
                 }
                 else if (!ItemBatch.start)
                 {
@@ -793,8 +944,9 @@ namespace batchInput_wpf.ViewsModel
                 }
                 else
                 {
-                    await page.CloseAsync();
+                    await ScreenShot(page, ItemBatch);
                     await _service.update_des(ItemBatch.ID, "Không Đủ SL PO");
+                    await page.CloseAsync();
                     return false;
                 }
             }
