@@ -13,20 +13,20 @@ namespace batchInput_wpf.Service
         {
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("http://192.168.122.15:5044/"); // Thay đổi URL theo API của bạn
-            //_httpClient.BaseAddress = new Uri("http://localhost:5044/"); // Thay đổi URL theo API của bạn
         }
 
-        public async Task<List<BatchInputHistory>> GetAllProductAsync()
+        public async Task<PagedResult<BatchInputHistory>> GetAllProductAsync(int pageNumber, int pageSize)
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<List<BatchInputHistory>>("api/Batch");
-                return result ?? new List<BatchInputHistory>();
+                var result = await _httpClient.GetFromJsonAsync<PagedResult<BatchInputHistory>>(
+                    $"api/Batch?pageNumber={pageNumber}&pageSize={pageSize}");
+                return result ?? new PagedResult<BatchInputHistory>();
             }
             catch(Exception ex)
             {
                 Console.WriteLine("err: "+ex);
-                return new List<BatchInputHistory>();
+                return new PagedResult<BatchInputHistory>();
             }
         }
 
@@ -35,6 +35,13 @@ namespace batchInput_wpf.Service
             try
             {
                 var result = await _httpClient.GetFromJsonAsync<List<BatchInputHistory>>("notComplate");
+                for(int i = 0; i <result.Count;i++)
+                {
+                    if (result[i].numRetry >=10)
+                    {
+                       result.RemoveAt(i);
+                    }
+                }
                 return result ?? new List<BatchInputHistory>();
             }
             catch (Exception ex)
@@ -49,7 +56,6 @@ namespace batchInput_wpf.Service
             try
             {
                 var result = await _httpClient.PutAsync($"api/Batch/Update/isComplate/{id}?isComplate=true",null);
-               
             }
             catch(Exception ex)
             {
@@ -68,21 +74,6 @@ namespace batchInput_wpf.Service
                 Console.WriteLine("err: " + ex);
             }
         }
-
-        
-        //public async Task updateisErr_po(int id)
-        //{
-        //    try
-        //    {
-        //        var result = await _httpClient.GetFromJsonAsync<List<ItemGetCount>>($"http://localhost:5044/api/Batch/Update/Batch_isErr/{id}?isErr=true");
-        //        //return result ?? new List<ItemGetCount>();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show("lỗi : " + ex);
-        //        //return new List<ItemGetCount>();
-        //    }
-        //}
 
         public async Task update_numRetry(int id)
         {
@@ -112,6 +103,19 @@ namespace batchInput_wpf.Service
             }
         }
 
+        public async Task update_runTime(int id)
+        {
+            try
+            {
+                var result = await _httpClient.PutAsync($"api/Batch/Update/RunTime/{id}", null);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("lỗi : " + ex);
+                //return new List<ItemGetCount>();
+            }
+        }
+
         public async Task update_desPO(int id, string descrip)
         {
             try
@@ -126,8 +130,5 @@ namespace batchInput_wpf.Service
                 //return new List<ItemGetCount>();
             }
         }
-
-
-
     }
 }

@@ -1,0 +1,323 @@
+<Window x:Class="batchInput_wpf.Views.ConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:batchInput_wpf"
+        mc:Ignorable="d"
+        Title="[SYS_CONFIG] :: RUNTIME_SETTINGS"
+        Height="660"
+        Width="640"
+        MinHeight="620"
+        MinWidth="560"
+        Background="#07090E"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Foreground="#00E5FF">
+
+    <Window.Resources>
+        <!-- HIGH-TECH NEON BUTTON - PRIMARY (CYAN) -->
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0A1E3F"/>
+            <Setter Property="Foreground" Value="#00E5FF"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#00E5FF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="{TemplateBinding Padding}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#00E5FF" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00E5FF"/>
+                                <Setter Property="Foreground" Value="#07090E"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00B8D4"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- HIGH-TECH NEON BUTTON - CANCEL (DARK GREY) -->
+        <Style x:Key="CancelButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderBrush" Value="#475569"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#334155"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- SEGMENTED OPTION BUTTON (Headless ON/OFF) -->
+        <Style x:Key="ToggleOptionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0A0E17"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#1E293B"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BackBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="65"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP CYBER HEADER -->
+        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1">
+            <Border.Effect>
+                <DropShadowEffect Color="#00E5FF" BlurRadius="12" ShadowDepth="1" Opacity="0.3"/>
+            </Border.Effect>
+
+            <StackPanel VerticalAlignment="Center" Margin="30,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="⚙" FontSize="18" Foreground="#00E5FF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="CẤU HÌNH VẬN HÀNH"
+                               FontSize="20"
+                               FontWeight="Black"
+                               Foreground="#FFFFFF"/>
+                </StackPanel>
+                <TextBlock Text="/// Điều chỉnh delay tải danh sách và chế độ trình duyệt tự động"
+                           FontSize="11"
+                           Foreground="#64748B"/>
+            </StackPanel>
+        </Border>
+
+        <!-- CONTENT AREA -->
+        <StackPanel Grid.Row="1" Margin="30,25">
+
+            <!-- Delay Card -->
+            <Border Background="#0D111A" CornerRadius="4" Padding="16" BorderThickness="1" BorderBrush="#1E293B" Margin="0,0,0,20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="⏱" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Thời gian delay tải danh sách"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#00E5FF"/>
+                    </StackPanel>
+                    <TextBlock Text="Khoảng thời gian (giây) giữa mỗi lần app tự tải lại danh sách batch từ server."
+                               FontSize="10"
+                               Foreground="#64748B"
+                               Margin="0,0,0,10"
+                               TextWrapping="Wrap"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="#0A0E17" CornerRadius="2" BorderBrush="#1E293B" BorderThickness="1">
+                            <TextBox x:Name="txtDelaySeconds"
+                                     Background="Transparent"
+                                     Foreground="#FFFFFF"
+                                     CaretBrush="#00E5FF"
+                                     FontFamily="Consolas"
+                                     FontSize="14"
+                                     BorderThickness="0"
+                                     Padding="12,10"
+                                     MaxLength="5"
+                                     PreviewTextInput="txtDelaySeconds_PreviewTextInput"/>
+                        </Border>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="giây"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,0,0"
+                                   Foreground="#64748B"
+                                   FontSize="12"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Threads Card -->
+            <Border Background="#0D111A" CornerRadius="4" Padding="16" BorderThickness="1" BorderBrush="#1E293B" Margin="0,0,0,20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="🧵" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Số luồng chạy song song"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#00E5FF"/>
+                    </StackPanel>
+                    <TextBlock Text="Số batch được xử lý cùng lúc. Mỗi luồng mở 1 trình duyệt riêng nên càng nhiều luồng càng tốn RAM/CPU."
+                               FontSize="10"
+                               Foreground="#64748B"
+                               Margin="0,0,0,10"
+                               TextWrapping="Wrap"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="#0A0E17" CornerRadius="2" BorderBrush="#1E293B" BorderThickness="1">
+                            <TextBox x:Name="txtThreads"
+                                     Background="Transparent"
+                                     Foreground="#FFFFFF"
+                                     CaretBrush="#00E5FF"
+                                     FontFamily="Consolas"
+                                     FontSize="14"
+                                     BorderThickness="0"
+                                     Padding="12,10"
+                                     MaxLength="2"
+                                     PreviewTextInput="txtDelaySeconds_PreviewTextInput"/>
+                        </Border>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="luồng (1 - 10)"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,0,0"
+                                   Foreground="#64748B"
+                                   FontSize="12"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Headless Card -->
+            <Border Background="#0D111A" CornerRadius="4" Padding="16" BorderThickness="1" BorderBrush="#1E293B">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="🖥" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Chế độ trình duyệt tự động"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#00E5FF"/>
+                    </StackPanel>
+                    <TextBlock Text="Chạy ẩn (Headless) giúp tiết kiệm RAM/CPU đáng kể — chỉ bật hiển thị khi cần debug."
+                               FontSize="10"
+                               Foreground="#64748B"
+                               Margin="0,0,0,10"
+                               TextWrapping="Wrap"/>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="btnHeadlessOn"
+                                Content="🕶 ẨN (KHUYẾN NGHỊ)"
+                                Width="200"
+                                Height="36"
+                                Style="{StaticResource ToggleOptionButtonStyle}"
+                                Click="btnHeadlessOn_Click"
+                                Margin="0,0,10,0"/>
+                        <Button x:Name="btnHeadlessOff"
+                                Content="🖥 HIỂN THỊ (DEBUG)"
+                                Width="200"
+                                Height="36"
+                                Style="{StaticResource ToggleOptionButtonStyle}"
+                                Click="btnHeadlessOff_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+
+        <!-- FOOTER -->
+        <Border Grid.Row="2" Background="#0D111A" BorderBrush="#1E293B" BorderThickness="0,1,0,0" Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           x:Name="txt_notify"
+                           VerticalAlignment="Center"
+                           Text="✓ Thiết lập được áp dụng ngay và lưu lại cho lần chạy sau"
+                           FontSize="11"
+                           Foreground="#64748B"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="HỦY BỎ"
+                            Width="110"
+                            Height="38"
+                            Margin="0,0,12,0"
+                            Click="btnCancel_Click"
+                            Style="{StaticResource CancelButtonStyle}"/>
+
+                    <Button Content="LƯU CẤU HÌNH"
+                            Width="140"
+                            Height="38"
+                            x:Name="btnOK"
+                            Click="btnOK_Click"
+                            Style="{StaticResource ModernButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

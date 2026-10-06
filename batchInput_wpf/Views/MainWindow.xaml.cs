@@ -39,6 +39,17 @@ namespace batchInput_wpf.Views
             _binding.IsRunning = false;
         }
 
+        private void btn_config_Click(object sender, RoutedEventArgs e)
+        {
+            // Truyen thang instance _itemSaveConfig dang chay de setting co hieu luc ngay,
+            // khong can khoi dong lai app.
+            var configWindow = new ConfigWindow(_binding._itemSaveConfig)
+            {
+                Owner = this
+            };
+            configWindow.ShowDialog();
+        }
+
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
             _binding.IsRunning = true;
@@ -46,12 +57,32 @@ namespace batchInput_wpf.Views
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            await _binding.InitializeAsync();
+            await _binding.InitializeAsync();   
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private async void btn_page_first_Click(object sender, RoutedEventArgs e)
+        {
+            await _binding.GoToFirstPage();
+        }
+
+        private async void btn_page_prev_Click(object sender, RoutedEventArgs e)
+        {
+            await _binding.GoToPreviousPage();
+        }
+
+        private async void btn_page_next_Click(object sender, RoutedEventArgs e)
+        {
+            await _binding.GoToNextPage();
+        }
+
+        private async void btn_page_last_Click(object sender, RoutedEventArgs e)
+        {
+            await _binding.GoToLastPage();
         }
 
         private void btn_lib_Click(object sender, RoutedEventArgs e)

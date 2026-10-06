@@ -20,6 +20,7 @@ namespace batchInput_wpf.Model
         public int numRetry { get; set; } = 0;
         public string description { get; set; } = string.Empty;
         public List<ListPO> ListPO { get; set; } = new();
+        public bool isDelete { get; set; } = false;
 
         //public int coutListPo { get; set; } = ListPO.Count;
 

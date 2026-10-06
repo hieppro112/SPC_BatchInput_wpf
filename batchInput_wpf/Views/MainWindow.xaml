@@ -168,6 +168,94 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- HIGH-TECH NEON BUTTON - CONFIG (SLATE/CYAN) -->
+        <Style x:Key="ConfigButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#141B2D"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="ExtraBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#475569"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5, 0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <Border x:Name="BackBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"
+                                    Padding="16,8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00E5FF"/>
+                                <Setter TargetName="BackBorder" Property="BorderBrush" Value="#00E5FF"/>
+                                <Setter Property="Foreground" Value="#07090E"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00B8D4"/>
+                                <Setter TargetName="ButtonRoot" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- SMALL NEON BUTTON - PAGINATION (CYAN) -->
+        <Style x:Key="PageButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0A1E3F"/>
+            <Setter Property="Foreground" Value="#00E5FF"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#00E5FF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BackBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00E5FF"/>
+                                <Setter Property="Foreground" Value="#07090E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#00B8D4"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BackBorder" Property="Background" Value="#0A0E17"/>
+                                <Setter TargetName="BackBorder" Property="BorderBrush" Value="#1E293B"/>
+                                <Setter Property="Foreground" Value="#475569"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -187,6 +275,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -213,8 +302,18 @@
                         Style="{StaticResource OpenButtonStyle}"
                         Click="btn_lib_Click"/>
 
-                <!-- Action Buttons: Controls -->
+                <!-- Action Button: Config -->
                 <Button Grid.Column="3"
+                        x:Name="btn_config"
+                        Content="⚙ CONFIG"
+                        Width="120"
+                        Height="40"
+                        Style="{StaticResource ConfigButtonStyle}"
+                        Click="btn_config_Click"
+                        Margin="15,0,0,0"/>
+
+                <!-- Action Buttons: Controls -->
+                <Button Grid.Column="4"
                         x:Name="btn_start"
                         Content="▶ START_PROC"
                         Width="140"
@@ -223,7 +322,7 @@
                         Click="btn_start_Click"
                         Margin="15,0,0,0"/>
 
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         x:Name="btn_pause"
                         Content="⏸ PAUSE_PROC"
                         Width="140"
@@ -248,6 +347,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Panel Header -->
@@ -292,8 +392,8 @@
 
                     <!-- TreeView Matrix -->
                     <TreeView Grid.Row="2"
-                              x:Name="OrderTreeView" 
-                              ItemsSource="{Binding BatchInputHistories}"
+                              x:Name="OrderTreeView"
+                              ItemsSource="{Binding PagedBatchInputHistories}"
                               BorderThickness="0"
                               Background="Transparent"
                               Padding="0">
@@ -375,6 +475,60 @@
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
+
+                    <!-- Pagination Bar -->
+                    <Border Grid.Row="3" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="0,1,0,0" Padding="15,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" FontSize="11" Foreground="#64748B" VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Tổng {0} batch — Trang {1}/{2}">
+                                        <Binding Path="TotalItems"/>
+                                        <Binding Path="CurrentPage"/>
+                                        <Binding Path="TotalPages"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="btn_page_first"
+                                        Content="&lt;&lt;"
+                                        Width="34" Height="28"
+                                        Margin="4,0,0,0"
+                                        Style="{StaticResource PageButtonStyle}"
+                                        IsEnabled="{Binding CanGoPreviousPage}"
+                                        Click="btn_page_first_Click"/>
+                                <Button x:Name="btn_page_prev"
+                                        Content="&lt;"
+                                        Width="34" Height="28"
+                                        Margin="4,0,0,0"
+                                        Style="{StaticResource PageButtonStyle}"
+                                        IsEnabled="{Binding CanGoPreviousPage}"
+                                        Click="btn_page_prev_Click"/>
+                                <Border Background="#141B2D" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="2" Margin="8,0,0,0" Padding="10,0" MinWidth="60">
+                                    <TextBlock Text="{Binding CurrentPage}" FontSize="12" FontWeight="Bold" Foreground="#00E5FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Button x:Name="btn_page_next"
+                                        Content="&gt;"
+                                        Width="34" Height="28"
+                                        Margin="8,0,0,0"
+                                        Style="{StaticResource PageButtonStyle}"
+                                        IsEnabled="{Binding CanGoNextPage}"
+                                        Click="btn_page_next_Click"/>
+                                <Button x:Name="btn_page_last"
+                                        Content="&gt;&gt;"
+                                        Width="34" Height="28"
+                                        Margin="4,0,0,0"
+                                        Style="{StaticResource PageButtonStyle}"
+                                        IsEnabled="{Binding CanGoNextPage}"
+                                        Click="btn_page_last_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
