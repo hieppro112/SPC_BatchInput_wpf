@@ -955,10 +955,10 @@ namespace batchInput_wpf.ViewsModel
                 await page.WaitForFunctionAsync(
                     "() => document.title.includes('Daily Report Login')");
 
-                if (ItemBatch.ListPO.Count == runContext.PoCount&&ItemBatch.start)
+                if (ItemBatch.ListPO.Count <= runContext.PoCount&&ItemBatch.start)
                 {
                     await _service.UpdateItem(ItemBatch.ID);
-                    await _service.update_des(ItemBatch.ID, "START DONE");
+                    await _service.update_des(ItemBatch.ID, $"START DONE ({runContext.PoCount}/{ItemBatch.ListPO.Count})");
                     await page.CloseAsync();
                     return true;
 
