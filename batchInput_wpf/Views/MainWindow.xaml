@@ -10,7 +10,7 @@
         MinHeight="700" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
         Background="#07090E"
-        Foreground="#00E5FF">
+        Foreground="#00E5FF" Closing="Window_Closing">
 
     <Window.Resources>
         <!-- HIGH-TECH NEON BUTTON - OPEN (CYAN/GREEN) -->
@@ -259,13 +259,17 @@
     </Window.Resources>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="151*"/>
+            <ColumnDefinition Width="49*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="65"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- TOP CYBER HEADER -->
-        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1" Grid.ColumnSpan="2">
             <Border.Effect>
                 <DropShadowEffect Color="#00E5FF" BlurRadius="12" ShadowDepth="1" Opacity="0.3"/>
             </Border.Effect>
@@ -334,7 +338,7 @@
         </Border>
 
         <!-- MAIN DASHBOARD CONTENT -->
-        <Grid Grid.Row="1" Margin="15">
+        <Grid Grid.Row="1" Margin="15,15,15,15" Grid.ColumnSpan="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="3*"/>
                 <RowDefinition Height="2*"/>
@@ -548,14 +552,72 @@
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0" Background="#141B2D" BorderBrush="#00E5FF" BorderThickness="2,0,0,1" Padding="15,10">
-                            <TextBlock Text="/// TELEMETRY &amp; REALTIME METRICS" FontSize="12" FontWeight="Black" Foreground="#00E5FF"/>
+                            <TextBlock Text="/// SESSION RESULTS :: KẾT QUẢ PHIÊN CHẠY" FontSize="12" FontWeight="Black" Foreground="#00E5FF"/>
                         </Border>
 
-                        <!--<Grid Grid.Row="1" Background="#0A0E17" Margin="10">
-                            <lvc:CartesianChart Series="{Binding Series}"
-                                                XAxes="{Binding XAxes}"
-                                                YAxes="{Binding YAxes}" />-->
-                        <!--</Grid>-->
+                        <Grid Grid.Row="1" Margin="12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- THÀNH CÔNG -->
+                            <Border Grid.Row="0" Grid.Column="0" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0" Padding="12,10">
+                                <Grid>
+                                    <Border VerticalAlignment="Top" Height="2" Background="#00FF99" Margin="-12,-10,-12,0"/>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding SessionSuccess}" FontFamily="Consolas" FontSize="38" FontWeight="Black" Foreground="#00FF99" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="THÀNH CÔNG" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- LỖI -->
+                            <Border Grid.Row="0" Grid.Column="1" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0" Padding="12,10">
+                                <Grid>
+                                    <Border VerticalAlignment="Top" Height="2" Background="#FF0055" Margin="-12,-10,-12,0"/>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding SessionError}" FontFamily="Consolas" FontSize="38" FontWeight="Black" Foreground="#FF0055" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="LỖI" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- TỈ LỆ -->
+                            <Border Grid.Row="0" Grid.Column="2" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0" Padding="12,10">
+                                <Grid>
+                                    <Border VerticalAlignment="Top" Height="2" Background="#00E5FF" Margin="-12,-10,-12,0"/>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding SessionSuccessRate}" FontFamily="Consolas" FontSize="38" FontWeight="Black" Foreground="#00E5FF" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="TỈ LỆ THÀNH CÔNG" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- ĐANG ĐỢI -->
+                            <Border Grid.Row="0" Grid.Column="3" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="3" Padding="12,10">
+                                <Grid>
+                                    <Border VerticalAlignment="Top" Height="2" Background="#FF9800" Margin="-12,-10,-12,0"/>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding SessionWaiting}" FontFamily="Consolas" FontSize="38" FontWeight="Black" Foreground="#FF9800" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="ĐANG ĐỢI" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Dòng phụ: đang chạy -->
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Margin="0,10,0,0" FontSize="11" Foreground="#64748B">
+                                <Run Text="Đang chạy: "/>
+                                <Run Text="{Binding SessionRunning, Mode=OneWay}" Foreground="#00E5FF" FontWeight="Bold"/>
+                                <Run Text=" item  ·  Tính theo từng item trong phiên làm việc hiện tại (từ lúc mở app)"/>
+                            </TextBlock>
+                        </Grid>
                     </Grid>
                 </Border>
 

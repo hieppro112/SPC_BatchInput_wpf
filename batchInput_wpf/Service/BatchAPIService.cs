@@ -1,16 +1,20 @@
 ﻿using batchInput_wpf.Model;
+using batchInput_wpf.ViewsModel;
 using System.CodeDom;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Windows;
+using static MaterialDesignThemes.Wpf.Theme.ToolBar;
 
 namespace batchInput_wpf.Service
 {
     public class BatchAPIService
     {
+        private readonly Action<string, LogStatus> _log;
         private readonly HttpClient _httpClient;
-        public BatchAPIService()
+        public BatchAPIService(Action<String, LogStatus> log)
         {
+            _log = log;
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("http://192.168.122.15:5044/"); // Thay đổi URL theo API của bạn
         }
@@ -35,7 +39,7 @@ namespace batchInput_wpf.Service
             try
             {
                 var result = await _httpClient.GetFromJsonAsync<List<BatchInputHistory>>("notComplate");
-                for(int i = 0; i <result.Count;i++)
+                for(int i = 0; i < result.Count;i++)
                 {
                     if (result[i].numRetry >=10)
                     {
@@ -83,7 +87,8 @@ namespace batchInput_wpf.Service
             }
             catch (Exception ex)
             {
-                MessageBox.Show("lỗi : " + ex);
+                
+                _log($"ID:{id} Đã có lỗi khi update numtry: "+ex.Message,LogStatus.Error);
                 //return new List<ItemGetCount>();
             }
         }
@@ -98,7 +103,8 @@ namespace batchInput_wpf.Service
             }
             catch (Exception ex)
             {
-                MessageBox.Show("lỗi : " + ex);
+                _log($"ID:{id} Đã có lỗi khi update des: " + ex.Message, LogStatus.Error);
+
                 //return new List<ItemGetCount>();
             }
         }
@@ -111,7 +117,8 @@ namespace batchInput_wpf.Service
             }
             catch (Exception ex)
             {
-                MessageBox.Show("lỗi : " + ex);
+                _log($"ID:{id} Đã có lỗi khi update runTime: " + ex.Message, LogStatus.Error);
+
                 //return new List<ItemGetCount>();
             }
         }
@@ -126,7 +133,8 @@ namespace batchInput_wpf.Service
             }
             catch (Exception ex)
             {
-                MessageBox.Show("lỗi : " + ex);
+                _log($"ID:{id} Đã có lỗi khi update DesPo: " + ex.Message, LogStatus.Error);
+
                 //return new List<ItemGetCount>();
             }
         }
