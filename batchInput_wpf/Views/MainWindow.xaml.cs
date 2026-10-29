@@ -101,5 +101,16 @@ namespace batchInput_wpf.Views
                 MessageBox.Show("Folder does not exist: " + path_img);
             }
         }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            var result = MessageBox.Show("Khi tắt mọi tác vụ bên trong sẽ dùng lại ?", "Xác nhận thoát", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Cancel)
+            {
+                e.Cancel = true;
+
+            }
+            
+        }
     }
 }

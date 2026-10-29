@@ -3,6 +3,7 @@ using batchInput_wpf.Model;
 using batchInput_wpf.Service;
 using Microsoft.Playwright;
 using OpenTK.Graphics.OpenGL;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -139,13 +140,47 @@ namespace batchInput_wpf.ViewsModel
             await RefreshCurrentPageAsync();
         }
         #endregion
+
+        #region Thong ke phien lam viec (Session stats)
+        // Dem theo ID item (ket qua cuoi cung trong phien): item loi roi chay lai thanh cong se tinh la thanh cong.
+        // Khong dem tu ItemStatus tren luoi vi cac item tren luoi bi tao moi moi lan lam moi trang.
+        private readonly ConcurrentDictionary<int, bool> _sessionResults = new();
+        private int _sessionRunning;
+        private int _sessionWaiting;
+
+        public int SessionSuccess => _sessionResults.Count(r => r.Value);
+        public int SessionError => _sessionResults.Count(r => !r.Value);
+        public int SessionRunning => Math.Max(0, _sessionRunning);
+        public int SessionWaiting => Math.Max(0, _sessionWaiting);
+        public string SessionSuccessRate
+        {
+            get
+            {
+                int done = SessionSuccess + SessionError;
+                return done == 0 ? "--" : $"{SessionSuccess * 100 / done}%";
+            }
+        }
+
+        private void NotifySessionStats()
+        {
+            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                OnPropertyChanged(nameof(SessionSuccess));
+                OnPropertyChanged(nameof(SessionError));
+                OnPropertyChanged(nameof(SessionRunning));
+                OnPropertyChanged(nameof(SessionWaiting));
+                OnPropertyChanged(nameof(SessionSuccessRate));
+            }));
+        }
+        #endregion
+
         public ItemSaveConfig _itemSaveConfig;
         private FileHelper _myFileHelper = new FileHelper();
         
 
         public MainViewModel()
         {
-            _service = new BatchAPIService();
+            _service = new BatchAPIService((msg,status) => AddLog(msg,status));
             _itemSaveConfig = _myFileHelper.ReadJson();
             _ = LoadBatchInput();
         }
@@ -170,9 +205,33 @@ namespace batchInput_wpf.ViewsModel
 
                     // 2. Lấy danh sách các item chưa hoàn thành
                     var result_notcomplate = await _service.GetProduct_notComplate_Async();
+                    Interlocked.Exchange(ref _sessionWaiting, result_notcomplate?.Count ?? 0);
+                    NotifySessionStats();
 
                     if (IsRunning && result_notcomplate != null && result_notcomplate.Count > 0)
                     {
+
+                        using var playwright = await Playwright.CreateAsync();
+                        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+                        {
+                            Channel = "msedge",
+                            Headless = _itemSaveConfig.HeadlessMode,//lay trong file config gan vao 
+                            Args = new[]
+                            {
+                        "--disable-blink-features=AutomationControlled", // Tắt cờ báo Automation
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-gpu",
+                        "--disable-extensions",
+                        "--mute-audio",
+                        "--disable-background-timer-throttling",
+                        "--disable-backgrounding-occluded-windows",
+                        "--disable-renderer-backgrounding"
+                    }
+                        });
+
+
+
                         // Số luồng chạy song song lấy từ cấu hình (nút Config)
                         var parallelOptions = new ParallelOptions
                         {
@@ -181,6 +240,10 @@ namespace batchInput_wpf.ViewsModel
                         await Parallel.ForEachAsync(result_notcomplate, parallelOptions, async (item, token) =>
                         {
                             if (!IsRunning) return;
+
+                            Interlocked.Decrement(ref _sessionWaiting);
+                            Interlocked.Increment(ref _sessionRunning);
+                            NotifySessionStats();
 
                             // Chỉ có the cập nhật UI nếu item đang nằm trong trang hiển thị hiện tại
                             // (vì đã chuyển sang phân trang phía server, không còn giữ toàn bộ danh sách ở client).
@@ -211,7 +274,7 @@ namespace batchInput_wpf.ViewsModel
                                 }));
 
                                 // Thực thi tác vụ Auto Web (Giải phóng hoàn toàn khỏi UI Thread)
-                                result_run = await event_auto_web(item);
+                                result_run = await event_auto_web(browser,item);
                                 await _service.update_numRetry(item.ID);
 
                                 // Cập nhật trạng thái Success / Error
@@ -229,6 +292,10 @@ namespace batchInput_wpf.ViewsModel
                                 }
 
                             } while (!result_run && count_err < 1);
+
+                            _sessionResults[item.ID] = result_run;
+                            Interlocked.Decrement(ref _sessionRunning);
+                            NotifySessionStats();
 
                             Debug.WriteLine($"Item {item.ID} count err: {count_err}");
 
@@ -300,7 +367,7 @@ namespace batchInput_wpf.ViewsModel
                 try
                 {
                     string logFolder = Path.Combine(_itemSaveConfig.pathSaveImg, "LOG");
-                    string logFilePath = Path.Combine(logFolder, "log.txt");
+                    string logFilePath = Path.Combine(logFolder, $"log-{DateTime.Now.ToString("yyyy-MM-dd")}.txt");
 
                     Directory.CreateDirectory(logFolder);
 
@@ -320,7 +387,7 @@ namespace batchInput_wpf.ViewsModel
         }
 
         #region bat dau autoclick
-        private async Task<bool> event_auto_web(BatchInputHistory itemBatch)
+        private async Task<bool> event_auto_web(IBrowser browser, BatchInputHistory itemBatch)
         {
             try
             {
@@ -328,24 +395,7 @@ namespace batchInput_wpf.ViewsModel
                 // using/await using: dam bao driver Playwright, browser va context luon duoc
                 // dong khi ham ket thuc (ke ca return som hay nem exception), tranh leak
                 // tien trinh msedge.exe khi app chay lien tuc trong thoi gian dai.
-                using var playwright = await Playwright.CreateAsync();
-                await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-                {
-                    Channel = "msedge",
-                    Headless = _itemSaveConfig.HeadlessMode,//lay trong file config gan vao 
-                    Args = new[]
-                    {
-                        "--disable-blink-features=AutomationControlled", // Tắt cờ báo Automation
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-gpu",
-                        "--disable-extensions",
-                        "--mute-audio",
-                        "--disable-background-timer-throttling",
-                        "--disable-backgrounding-occluded-windows",
-                        "--disable-renderer-backgrounding"
-                    }
-                });
+                
                 await using var context = await browser.NewContextAsync();
                 // Xóa thu?c tính navigator.webdriver trên trang
                 await context.AddInitScriptAsync(@"
@@ -375,6 +425,7 @@ namespace batchInput_wpf.ViewsModel
                                 {
                                     await Task.Delay(3000);
                                     bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO, itemBatch, itemContext);
+                                    AddLog($"ID:{itemBatch.ID} [DIAG] AT_Click_list_PO trả về {IscheckList}, PoCount={itemContext.PoCount}/{itemBatch.ListPO.Count}", IscheckList ? LogStatus.Running : LogStatus.Error);
                                     await Task.Delay(3000);
                                     if (IscheckList && itemBatch.start)
                                     {
@@ -673,8 +724,11 @@ namespace batchInput_wpf.ViewsModel
                                             return results;
                                         }
                                     ");
+                        int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0, cntSkipped = 0;
+                        AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
                         for (int i = 0; i < listPo.Count; i++)
                         {
+                            if (listPo[i].isComplate) cntSkipped++;
                             if (!listPo[i].isComplate)
                             {
                                 await Task.Delay(3000);
@@ -702,14 +756,16 @@ namespace batchInput_wpf.ViewsModel
                                 string messageInputPO = rawText.Trim();
 
                                 Debug.WriteLine(messageInputPO);
+                                string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
+                                AddLog($"ID:{item.ID} [DIAG] PO {i + 1}/{listPo.Count} {listPo[i].Po}: coutNow={coutNow}, txtPOCount sau Enter: {await ReadPoCountDiagAsync(page)}, txtMsg=\"{msgOneLine}\"");
 
-
-                                
-                                if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not"))
+                                if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not") || messageInputPO.Contains("ALL NG"))
                                 {
-                                    AddLog(messageInputPO + listPo[i].Po, LogStatus.Error);
+                                    cntWebErr++;
+                                    AddLog($"ID:{item.ID} PO {listPo[i].Po} bị web từ chối: " + msgOneLine, LogStatus.Error);
                                     await _service.update_desPO(listPo[i].ID, messageInputPO);
                                     await _service.UpdateSTTPO(listPo[i].ID, false);
+
                                     //await _service.update(listPo[i].ID, messageInputPO);
 
                                     //return false;
@@ -722,11 +778,18 @@ namespace batchInput_wpf.ViewsModel
 
                                     if (existingPoList.Any(x => x.Contains(currentPo)))
                                     {
-                                        AddLog($"PO {listPo[i].Po} không được thêm vào danh sách vì dã tồn tại.", LogStatus.Error);
+                                        cntExist++;
+                                        AddLog($"ID:{item.ID} PO {listPo[i].Po} không được thêm vào danh sách vì dã tồn tại.", LogStatus.Error);
                                         await _service.UpdateSTTPO(listPo[i].ID, true);
                                         await _service.update_desPO(listPo[i].ID, "đã tồn tại");
                                         await page.ClickAsync("#btnCancel");
                                         await Task.Delay(2000);
+                                    }
+                                    else
+                                    {
+                                        // Nhanh nay truoc day khong lam gi va khong log: PO khong ghi nhan trang thai nao.
+                                        cntSilent++;
+                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: web trả 'or Apply' nhưng PO không có trong danh sách sẵn có -> chưa ghi trạng thái nào", LogStatus.Error);
                                     }
 
                                 }
@@ -739,33 +802,41 @@ namespace batchInput_wpf.ViewsModel
                                         int coutNext = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
                                         if ((coutNow < coutNext) && (coutNow != 0) && (coutNext != 0))
                                         {
+                                            cntOk++;
                                             await _service.UpdateSTTPO(listPo[i].ID, true);
                                             await _service.update_desPO(listPo[i].ID, "OK");
                                             await Task.Delay(1000);
                                             isCheck = true;
                                             break;
                                         }
+                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: chờ count tăng lần {numCheck + 1}, coutNow={coutNow}, coutNext={coutNext}");
                                         numCheck++;
                                         await Task.Delay(3000);
                                     }
                                     if (!isCheck)
                                     {
+                                        cntUnknown++;
+                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: count không tăng (coutNow={coutNow}) -> đánh dấu 'Loi khong xac dinh'", LogStatus.Error);
                                         await _service.UpdateSTTPO(listPo[i].ID, false);
                                         await _service.update_desPO(listPo[i].ID, "Loi khong xac dinh");
+                                        await ScreenShot(page, item);
                                         await Task.Delay(1000);
                                     }
                                 }
                             }
                         }
+                        AddLog($"ID:{item.ID} [DIAG] Tổng kết nhập PO ({listPo.Count} PO): OK={cntOk}, web từ chối={cntWebErr}, đã tồn tại={cntExist}, không ghi nhận (or Apply)={cntSilent}, count không tăng={cntUnknown}, bỏ qua do đã complete={cntSkipped}");
                     }
 
                     int numtry = 0;
                     while (runContext.PoCount == 0 && numtry < 5)
                     {
                         runContext.PoCount = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+                        AddLog($"ID:{item.ID} [DIAG] Đọc PoCount lần {numtry + 1}: gán PoCount={runContext.PoCount} (txtPOCount: {await ReadPoCountDiagAsync(page)})");
                         await Task.Delay(5000);
                         numtry++;
                     }
+                    AddLog($"ID:{item.ID} [DIAG] Chốt PoCount={runContext.PoCount}, DB={listPo.Count} PO, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}, txtPOCount: {await ReadPoCountDiagAsync(page)}");
 
                     AddLog($"ID:{item.ID} Tiến hành nhấn cho tất cả các item");
 
@@ -955,10 +1026,11 @@ namespace batchInput_wpf.ViewsModel
                 await page.WaitForFunctionAsync(
                     "() => document.title.includes('Daily Report Login')");
 
-                if (ItemBatch.ListPO.Count == runContext.PoCount&&ItemBatch.start)
+                AddLog($"ID:{ItemBatch.ID} [DIAG] AT_end_PO: PoCount={runContext.PoCount}, ListPO.Count={ItemBatch.ListPO.Count}, start={ItemBatch.start}, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}");
+                if (ItemBatch.ListPO.Count <= runContext.PoCount&&ItemBatch.start)
                 {
                     await _service.UpdateItem(ItemBatch.ID);
-                    await _service.update_des(ItemBatch.ID, "START DONE");
+                    await _service.update_des(ItemBatch.ID, $"START DONE ({runContext.PoCount}/{ItemBatch.ListPO.Count})");
                     await page.CloseAsync();
                     return true;
 
@@ -1016,7 +1088,38 @@ namespace batchInput_wpf.ViewsModel
             AddLog($"ID:{itemBatch.ID} Hoàn thành bước 2", LogStatus.Success);
         }
         #endregion
+        
 
+        // [DIAG] Doc #txtPOCount theo 2 cach de so sanh: attribute (HTML ban dau) va value song (gia tri hien tai).
+        private async Task<string> ReadPoCountDiagAsync(IPage page)
+        {
+            try
+            {
+                string? attr = await page.Locator("#txtPOCount").GetAttributeAsync("value");
+                string live = await page.Locator("#txtPOCount").InputValueAsync();
+                return $"attr={attr ?? "null"} | live={live}";
+            }
+            catch (Exception ex)
+            {
+                return "loi doc: " + ex.Message;
+            }
+        }
+
+        // [DIAG] Dem so dong PO that su dang co trong bang tren trang.
+        private async Task<string> CountPoRowsDiagAsync(IPage page)
+        {
+            try
+            {
+                int rows = await page.EvaluateAsync<int>(@"() =>
+                    Array.from(document.querySelectorAll('tr.inlayout.coltitle'))
+                         .filter(r => ((r.querySelector('[id*=""txtPO""]') || {}).value || '').trim() !== '').length");
+                return rows.ToString();
+            }
+            catch (Exception ex)
+            {
+                return "loi dem: " + ex.Message;
+            }
+        }
 
         private async Task ScreenShot(IPage page, BatchInputHistory itemBatch)
         {
