@@ -932,7 +932,7 @@ namespace batchInput_wpf.ViewsModel
                         if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
-                            AddLog($"ID:{itemBatch.ID} Ðã vào {await page.TitleAsync()}", LogStatus.Success);
+                            AddLog($"ID {itemBatch.ID}: {itemBatch.ListPO[i]} đã bị {rawText}", LogStatus.Success);
                             await page.ClickAsync("#lblStatus");
 
                             //cap nhat trang thai PO vao DB item.st
