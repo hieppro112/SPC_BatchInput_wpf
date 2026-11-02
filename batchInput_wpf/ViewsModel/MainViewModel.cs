@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using static MaterialDesignThemes.Wpf.Theme.ToolBar;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -726,6 +727,7 @@ namespace batchInput_wpf.ViewsModel
                                     ");
                         int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0, cntSkipped = 0;
                         AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
+                        await ScreenShot(page,item);
                         for (int i = 0; i < listPo.Count; i++)
                         {
                             if (listPo[i].isComplate) cntSkipped++;
@@ -920,9 +922,16 @@ namespace batchInput_wpf.ViewsModel
 
                     for(int i = 0; i < itemBatch.ListPO.Count; i++)
                     {
-                        await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
-                        await page.Keyboard.PressAsync("Enter");
-                        await Task.Delay(5000);
+                        if (itemBatch.numRetry > 1)
+                        {
+                            if (itemBatch.ListPO[i].isComplate==true)
+                            await event_PoOwn(page, itemBatch, i);
+                        }
+                        else
+                        {
+                            await event_PoOwn(page, itemBatch, i);
+                        }
+
                         // 1. l?y full message
                         string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
@@ -956,6 +965,13 @@ namespace batchInput_wpf.ViewsModel
                 AddLog(ex.Message,LogStatus.Error);
                 return false;
             }
+        }
+
+        private async Task event_PoOwn(IPage page, BatchInputHistory itemBatch,int i)
+        {
+            await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
+            await page.Keyboard.PressAsync("Enter");
+            await Task.Delay(5000);
         }
 
         private async Task<bool> AT_Operator_Shift(IPage page, BatchInputHistory itemBatch)

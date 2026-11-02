@@ -105,13 +105,13 @@ namespace batchInput_wpf.Views
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            
             CrashLogger.Write("WINDOW-CLOSING", "Co yeu cau dong cua so chinh (nguoi dung bam X / Alt+F4, hoac Windows gui lenh dong)");
             var result = MessageBox.Show("Khi tắt mọi tác vụ bên trong sẽ dùng lại ?", "Xác nhận thoát", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
             CrashLogger.Write("WINDOW-CLOSING", $"Ket qua hop thoai xac nhan: {result}");
             if (result == MessageBoxResult.Cancel)
             {
                 e.Cancel = true;
-
             }
             
         }
