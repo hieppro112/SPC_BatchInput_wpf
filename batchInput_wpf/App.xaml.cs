@@ -1,14 +1,16 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using batchInput_wpf.Helper;
 using System.Windows;
 
-namespace Views.batchInput_wpf
+namespace batchInput_wpf
 {
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application
     {
+        public App()
+        {
+            CrashLogger.Init(this);
+        }
     }
-
 }
