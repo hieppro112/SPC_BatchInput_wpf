@@ -920,17 +920,16 @@ namespace batchInput_wpf.ViewsModel
 
                     AddLog($"ID:{itemBatch.ID} Tiến hành Nhập 1 PO đại điện");
 
-                    for(int i = 0; i < itemBatch.ListPO.Count; i++)
+                    // Chay lai (numRetry >= 1): web gom theo nhom, PO dai dien quyet dinh phien vao nhom nao.
+                    // nen chi thu cac PO DA complete (thuoc nhom cu) de vao lai dung nhom, chay 1 luot duy nhat.
+                    bool isRetry = itemBatch.numRetry >= 1;
+
+                    for (int i = 0; i < itemBatch.ListPO.Count; i++)
                     {
-                        if (itemBatch.numRetry > 1)
-                        {
-                            if (itemBatch.ListPO[i].isComplate==true)
-                            await event_PoOwn(page, itemBatch, i);
-                        }
-                        else
-                        {
-                            await event_PoOwn(page, itemBatch, i);
-                        }
+                        bool alreadyComplete = itemBatch.ListPO[i].isComplate;
+                        if (isRetry && !alreadyComplete) continue;
+
+                        await event_PoOwn(page, itemBatch, i);
 
                         // 1. l?y full message
                         string rawText = await page.Locator("#txtMsg").InnerTextAsync();
@@ -941,18 +940,20 @@ namespace batchInput_wpf.ViewsModel
                         if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
-                            AddLog($"ID {itemBatch.ID}: {itemBatch.ListPO[i]} đã bị {rawText}", LogStatus.Success);
+                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng được làm PO đại diện: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
                             await page.ClickAsync("#lblStatus");
 
-                            //cap nhat trang thai PO vao DB item.st
-                            await _service.update_desPO(itemBatch.ListPO[i].ID, message);
-                            await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, false);
-
+                            // PO da complete tu lan truoc thi khong ghi de trang thai trong DB
+                            if (!alreadyComplete)
+                            {
+                                await _service.update_desPO(itemBatch.ListPO[i].ID, message);
+                                await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, false);
+                            }
                         }
                         else
                         {
                             await _service.update_desPO(itemBatch.ListPO[i].ID, "OK");
-                            AddLog($"Item: {itemBatch.ID} Đã nhập PO đại diện thành công.", LogStatus.Success);
+                            AddLog($"Item: {itemBatch.ID} Đã nhập PO đại diện thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO đã complete từ lần trước" : "")}).", LogStatus.Success);
                             await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, true);
                             return true;
                         }
