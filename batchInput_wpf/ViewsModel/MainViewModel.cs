@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using static MaterialDesignThemes.Wpf.Theme.ToolBar;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -726,6 +727,7 @@ namespace batchInput_wpf.ViewsModel
                                     ");
                         int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0, cntSkipped = 0;
                         AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
+                        await ScreenShot(page,item);
                         for (int i = 0; i < listPo.Count; i++)
                         {
                             if (listPo[i].isComplate) cntSkipped++;
@@ -918,11 +920,17 @@ namespace batchInput_wpf.ViewsModel
 
                     AddLog($"ID:{itemBatch.ID} Tiến hành Nhập 1 PO đại điện");
 
-                    for(int i = 0; i < itemBatch.ListPO.Count; i++)
+                    // Chay lai (numRetry >= 1): web gom theo nhom, PO dai dien quyet dinh phien vao nhom nao.
+                    // nen chi thu cac PO DA complete (thuoc nhom cu) de vao lai dung nhom, chay 1 luot duy nhat.
+                    bool isRetry = itemBatch.numRetry >= 1;
+
+                    for (int i = 0; i < itemBatch.ListPO.Count; i++)
                     {
-                        await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
-                        await page.Keyboard.PressAsync("Enter");
-                        await Task.Delay(5000);
+                        bool alreadyComplete = itemBatch.ListPO[i].isComplate;
+                        if (isRetry && !alreadyComplete) continue;
+
+                        await event_PoOwn(page, itemBatch, i);
+
                         // 1. l?y full message
                         string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
@@ -932,18 +940,20 @@ namespace batchInput_wpf.ViewsModel
                         if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
-                            AddLog($"ID {itemBatch.ID}: {itemBatch.ListPO[i]} đã bị {rawText}", LogStatus.Success);
+                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng được làm PO đại diện: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
                             await page.ClickAsync("#lblStatus");
 
-                            //cap nhat trang thai PO vao DB item.st
-                            await _service.update_desPO(itemBatch.ListPO[i].ID, message);
-                            await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, false);
-
+                            // PO da complete tu lan truoc thi khong ghi de trang thai trong DB
+                            if (!alreadyComplete)
+                            {
+                                await _service.update_desPO(itemBatch.ListPO[i].ID, message);
+                                await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, false);
+                            }
                         }
                         else
                         {
                             await _service.update_desPO(itemBatch.ListPO[i].ID, "OK");
-                            AddLog($"Item: {itemBatch.ID} Đã nhập PO đại diện thành công.", LogStatus.Success);
+                            AddLog($"Item: {itemBatch.ID} Đã nhập PO đại diện thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO đã complete từ lần trước" : "")}).", LogStatus.Success);
                             await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, true);
                             return true;
                         }
@@ -956,6 +966,13 @@ namespace batchInput_wpf.ViewsModel
                 AddLog(ex.Message,LogStatus.Error);
                 return false;
             }
+        }
+
+        private async Task event_PoOwn(IPage page, BatchInputHistory itemBatch,int i)
+        {
+            await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
+            await page.Keyboard.PressAsync("Enter");
+            await Task.Delay(5000);
         }
 
         private async Task<bool> AT_Operator_Shift(IPage page, BatchInputHistory itemBatch)
