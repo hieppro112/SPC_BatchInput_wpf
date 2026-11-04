@@ -928,16 +928,24 @@ namespace batchInput_wpf.ViewsModel
                     {
                         bool alreadyComplete = itemBatch.ListPO[i].isComplate;
                         if (isRetry && !alreadyComplete && itemBatch.description.Contains("SL")) continue;
+                        string message = "";
+                        int checkint = 0;
+                        do
+                        {
+                            await event_PoOwn(page, itemBatch, i);
 
-                        await event_PoOwn(page, itemBatch, i);
+                            // 1. l?y full message
+                            string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
-                        // 1. l?y full message
-                        string rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                            // 2. d?nh d?ng l?i
+                            message = rawText.Trim();
+                            checkint++;
+                        } while (message.Contains("PO(Select BatchID)") && checkint < 3);
 
-                        // 2. d?nh d?ng l?i
-                        string message = rawText.Trim();
 
-                        if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
+                        
+
+                        if (message.Contains("is locked") || message.Contains("not exist")|| message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
                             AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng được làm PO đại diện: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
