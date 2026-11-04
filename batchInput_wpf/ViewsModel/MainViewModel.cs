@@ -927,7 +927,7 @@ namespace batchInput_wpf.ViewsModel
                     for (int i = 0; i < itemBatch.ListPO.Count; i++)
                     {
                         bool alreadyComplete = itemBatch.ListPO[i].isComplate;
-                        if (isRetry && !alreadyComplete) continue;
+                        if (isRetry && !alreadyComplete && itemBatch.description.Contains("SL")) continue;
 
                         await event_PoOwn(page, itemBatch, i);
 
