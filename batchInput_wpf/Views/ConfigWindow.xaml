@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:batchInput_wpf"
         mc:Ignorable="d"
         Title="[SYS_CONFIG] :: RUNTIME_SETTINGS"
-        Height="660"
+        Height="800"
         Width="640"
-        MinHeight="620"
+        MinHeight="760"
         MinWidth="560"
         Background="#07090E"
         WindowStartupLocation="CenterOwner"
@@ -248,6 +248,40 @@
                                    Foreground="#64748B"
                                    FontSize="12"/>
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Video Card -->
+            <Border Background="#0D111A" CornerRadius="4" Padding="16" BorderThickness="1" BorderBrush="#1E293B" Margin="0,0,0,20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="🎬" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Quay video từng batch"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#00E5FF"/>
+                    </StackPanel>
+                    <TextBlock Text="Mỗi batch quay một video, lưu theo ID trong thư mục Video của nơi lưu hình ảnh. Tốn thêm CPU và ổ đĩa, chỉ bật khi cần debug."
+                               FontSize="10"
+                               Foreground="#64748B"
+                               Margin="0,0,0,10"
+                               TextWrapping="Wrap"/>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="btnVideoOn"
+                                Content="🔴 BẬT QUAY VIDEO"
+                                Width="200"
+                                Height="36"
+                                Style="{StaticResource ToggleOptionButtonStyle}"
+                                Click="btnVideoOn_Click"
+                                Margin="0,0,10,0"/>
+                        <Button x:Name="btnVideoOff"
+                                Content="⏹ TẮT (MẶC ĐỊNH)"
+                                Width="200"
+                                Height="36"
+                                Style="{StaticResource ToggleOptionButtonStyle}"
+                                Click="btnVideoOff_Click"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

@@ -25,7 +25,8 @@ namespace batchInput_wpf.Helper
                     pathLogErr = config.pathLogErr,
                     PollDelaySeconds = config.PollDelaySeconds,
                     HeadlessMode = config.HeadlessMode,
-                    MaxThreads = config.MaxThreads
+                    MaxThreads = config.MaxThreads,
+                    RecordVideo = config.RecordVideo
                 };
             }
             else

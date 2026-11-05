@@ -276,6 +276,7 @@ namespace batchInput_wpf.ViewsModel
 
                                 // Thực thi tác vụ Auto Web (Giải phóng hoàn toàn khỏi UI Thread)
                                 result_run = await event_auto_web(browser,item);
+                                RenameItemVideos(item.ID);
                                 await _service.update_numRetry(item.ID);
 
                                 // Cập nhật trạng thái Success / Error
@@ -387,6 +388,75 @@ namespace batchInput_wpf.ViewsModel
             return item;
         }
 
+        #region quay video tung batch
+        private string GetVideoDir(int id) => Path.Combine(_itemSaveConfig.pathSaveImg ?? "", "Video", id.ToString());
+
+        private const string HideWebdriverScript = @"
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });";
+
+        // Moi item 1 context + 1 trang rieng; khi bat RecordVideo se quay video vao {pathSaveImg}\Video\{ID}.
+        // Thieu ffmpeg cua Playwright thi loi nem ra o buoc tao trang (khong phai luc tao context),
+        // nen bat o day va chay tiep KHONG quay video thay vi de item that bai.
+        private async Task<(IBrowserContext context, IPage page)> CreateItemContextAndPageAsync(IBrowser browser, BatchInputHistory itemBatch)
+        {
+            if (_itemSaveConfig.RecordVideo)
+            {
+                IBrowserContext? videoContext = null;
+                try
+                {
+                    videoContext = await browser.NewContextAsync(new BrowserNewContextOptions
+                    {
+                        RecordVideoDir = GetVideoDir(itemBatch.ID),
+                        RecordVideoSize = new RecordVideoSize { Width = 1024, Height = 576 }
+                    });
+                    await videoContext.AddInitScriptAsync(HideWebdriverScript);
+                    var videoPage = await videoContext.NewPageAsync();
+                    return (videoContext, videoPage);
+                }
+                catch (PlaywrightException ex) when (ex.Message.Contains("ffmpeg", StringComparison.OrdinalIgnoreCase))
+                {
+                    AddLog($"ID:{itemBatch.ID} Không quay được video: thiếu ffmpeg của Playwright, chạy tiếp không có video. Cài bằng lệnh: playwright install ffmpeg", LogStatus.Error);
+                    if (videoContext != null)
+                    {
+                        try { await videoContext.CloseAsync(); } catch { }
+                    }
+                }
+            }
+
+            var context = await browser.NewContextAsync();
+            await context.AddInitScriptAsync(HideWebdriverScript);
+            var page = await context.NewPageAsync();
+            return (context, page);
+        }
+
+        // Video chi hoan tat khi context dong -> goi sau khi event_auto_web tra ve. Doi ten theo ID + gio de de tim.
+        private void RenameItemVideos(int id)
+        {
+            try
+            {
+                if (!_itemSaveConfig.RecordVideo) return;
+
+                string dir = GetVideoDir(id);
+                if (!Directory.Exists(dir)) return;
+
+                foreach (string file in Directory.GetFiles(dir, "*.webm"))
+                {
+                    if (Path.GetFileName(file).StartsWith(id + "_")) continue;
+
+                    string target = Path.Combine(dir, $"{id}_{File.GetLastWriteTime(file):yyyy-MM-dd-HH-mm-ss}.webm");
+                    if (File.Exists(target)) continue;
+                    File.Move(file, target);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"ID:{id} Không đổi tên được video: {ex.Message}", LogStatus.Error);
+            }
+        }
+        #endregion
+
         #region bat dau autoclick
         private async Task<bool> event_auto_web(IBrowser browser, BatchInputHistory itemBatch)
         {
@@ -397,16 +467,8 @@ namespace batchInput_wpf.ViewsModel
                 // dong khi ham ket thuc (ke ca return som hay nem exception), tranh leak
                 // tien trinh msedge.exe khi app chay lien tuc trong thoi gian dai.
                 
-                await using var context = await browser.NewContextAsync();
-                // Xóa thu?c tính navigator.webdriver trên trang
-                await context.AddInitScriptAsync(@"
-                    Object.defineProperty(navigator, 'webdriver', {
-                        get: () => undefined
-                    });
-                ");
-
-                //var page = await browser.NewPageAsync();
-                var page = await context.NewPageAsync();
+                var (itemBrowserContext, page) = await CreateItemContextAndPageAsync(browser, itemBatch);
+                await using var context = itemBrowserContext;
 
                 await page.GotoAsync("http://10.4.24.117:8449/LG0100.aspx");
                 if ((await page.TitleAsync()).Contains("Daily Report Login"))
@@ -437,7 +499,7 @@ namespace batchInput_wpf.ViewsModel
                                             if (await AT_Click_startAll(page, itemBatch))
                                             {
                                                 AddLog($"ID:{itemBatch.ID} Hoàn thành Start item: " + itemBatch.ID, LogStatus.Success);
-                                                await Deletefolder(itemBatch);
+                                                
                                                 return await AT_end_PO(page, itemBatch,itemContext);
                                             }
                                             else
@@ -457,7 +519,7 @@ namespace batchInput_wpf.ViewsModel
                                     {
                                         if (await AT_Click_Finish(page, itemBatch))
                                         {
-                                            await Deletefolder(itemBatch);
+                                            await Deletefolder(itemBatch.ID.ToString());
                                             return await AT_end_PO(page, itemBatch,itemContext);
                                         }
                                     }
@@ -600,12 +662,14 @@ namespace batchInput_wpf.ViewsModel
                     await Task.Delay(2000);
                 }
 
-                await page.Locator("#btnAreaStartAll").WaitForAsync(new()
-                {
-                    State = WaitForSelectorState.Visible
-                });
+                //await page.Locator("#btnAreaStartAll").WaitForAsync(new()
+                //{
+                //    State = WaitForSelectorState.Visible
+                //});
 
-                await page.ClickAsync("#btnAreaStartAll");
+                //await page.ClickAsync("#btnAreaStartAll");
+
+
                 //await page.WaitForFunctionAsync(
                 //"() => document.title.includes('Daily Report work input batch')");
 
@@ -1057,6 +1121,10 @@ namespace batchInput_wpf.ViewsModel
                     await _service.UpdateItem(ItemBatch.ID);
                     await _service.update_des(ItemBatch.ID, $"START DONE ({runContext.PoCount}/{ItemBatch.ListPO.Count})");
                     await page.CloseAsync();
+                    //delete video
+                    await Deletefolder(ItemBatch.ID.ToString());
+                    await Deletefolder(@"Video\"+ItemBatch.ID.ToString());
+
                     return true;
 
                 }
@@ -1167,9 +1235,11 @@ namespace batchInput_wpf.ViewsModel
             }
         }
 
-        private async Task Deletefolder(BatchInputHistory itemBatch)
+        private async Task Deletefolder(string itemBatchID)
         {
-            string path = @$"D:\jobs\IT\pcx\batchInput_wpf\Image_err\{itemBatch.ID}";
+            //string path = @$"D:\jobs\IT\pcx\batchInput_wpf\Image_err\{itemBatchID}";
+            string path = @$"{_itemSaveConfig.pathSaveImg}\{itemBatchID}";
+
             if (Directory.Exists(path))
             {
                 Directory.Delete(path, true);
