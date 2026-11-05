@@ -56,6 +56,7 @@ namespace batchInput_wpf.Views
             itemPath.PollDelaySeconds = itemSaveConfig.PollDelaySeconds;
             itemPath.HeadlessMode = itemSaveConfig.HeadlessMode;
             itemPath.MaxThreads = itemSaveConfig.MaxThreads;
+            itemPath.RecordVideo = itemSaveConfig.RecordVideo;
             _myFile.WriteJson(itemPath);
             if (!string.IsNullOrEmpty(itemPath.pathLogErr) && !string.IsNullOrEmpty(itemPath.pathSaveImg))
             {

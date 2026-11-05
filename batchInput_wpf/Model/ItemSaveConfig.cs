@@ -12,6 +12,7 @@ namespace batchInput_wpf.Model
         public string? pathLogErr { get; set; } = string.Empty;
         public int PollDelaySeconds { get; set; }
         public bool HeadlessMode { get; set; } = true;
-        public int MaxThreads { get; set; } 
+        public int MaxThreads { get; set; }
+        public bool RecordVideo { get; set; } = false;
     }
 }
