@@ -263,11 +263,16 @@ namespace batchInput_wpf.ViewsModel
                                 App.Current.Dispatcher.BeginInvoke(new Action(() => uiItem.Status = ItemStatus.Running));
                             }
 
+                            // Số lần chạy LẠI tối đa khi gặp "Loi khong xac dinh" (tổng số lần chạy = 1 + MaxRetry)
+                            const int MaxRetry = 3;
                             bool result_run = false;
-                            int count_err = 0;
-
+                            int retryCount = 0;
+                            RunContext runContext;
                             do
                             {
+                                // Mỗi lần chạy dùng context mới để cờ lỗi được reset
+                                runContext = new RunContext();
+
                                 // Thêm log bất đồng bộ lên UI
                                 App.Current.Dispatcher.BeginInvoke(new Action(() =>
                                 {
@@ -275,9 +280,9 @@ namespace batchInput_wpf.ViewsModel
                                 }));
 
                                 // Thực thi tác vụ Auto Web (Giải phóng hoàn toàn khỏi UI Thread)
-                                result_run = await event_auto_web(browser,item);
-                                RenameItemVideos(item.ID);
                                 await _service.update_numRetry(item.ID);
+                                result_run = await event_auto_web(browser, item, runContext);
+                                RenameItemVideos(item.ID);
 
                                 // Cập nhật trạng thái Success / Error
                                 if (uiItem != null)
@@ -288,22 +293,20 @@ namespace batchInput_wpf.ViewsModel
                                     }));
                                 }
 
-                                if (!result_run)
-                                {
-                                    count_err++;
-                                }
-
-                            } while (!result_run && count_err < 1);
+                                // Chỉ chạy lại khi batch thất bại VÀ có PO "Loi khong xac dinh";
+                                // batch đã thành công thì không chạy lại để tránh nhập trùng.
+                            } while (!result_run && runContext.HasUnknownError && ++retryCount <= MaxRetry);
 
                             _sessionResults[item.ID] = result_run;
                             Interlocked.Decrement(ref _sessionRunning);
                             NotifySessionStats();
 
-                            Debug.WriteLine($"Item {item.ID} count err: {count_err}");
+                            Debug.WriteLine($"Item {item.ID} retry: {Math.Min(retryCount, MaxRetry)}/{MaxRetry}");
 
-                            // Ghi log lỗi nếu thất bại
-                            if (count_err >= 3)
+                            // Ghi log lỗi nếu đã chạy lại đủ số lần mà vẫn còn "Loi khong xac dinh"
+                            if (!result_run && runContext.HasUnknownError)
                             {
+                                AddLog($"ID:{item.ID} Đã chạy lại {MaxRetry} lần nhưng vẫn còn PO 'Loi khong xac dinh'", LogStatus.Error);
                                 string parse_json = JsonSerializer.Serialize(item);
                                 string fileName = $"{item.ID}_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_err.json";
                                 string filePath = Path.Combine(_itemSaveConfig.pathLogErr, fileName);
@@ -458,11 +461,10 @@ namespace batchInput_wpf.ViewsModel
         #endregion
 
         #region bat dau autoclick
-        private async Task<bool> event_auto_web(IBrowser browser, BatchInputHistory itemBatch)
+        private async Task<bool> event_auto_web(IBrowser browser, BatchInputHistory itemBatch, RunContext itemContext)
         {
             try
             {
-                RunContext itemContext = new RunContext();
                 // using/await using: dam bao driver Playwright, browser va context luon duoc
                 // dong khi ham ket thuc (ke ca return som hay nem exception), tranh leak
                 // tien trinh msedge.exe khi app chay lien tuc trong thoi gian dai.
@@ -647,7 +649,7 @@ namespace batchInput_wpf.ViewsModel
                 AddLog($"ID:{itemBatch.ID} Tiến hành nhập Operator");
                 await page.Keyboard.TypeAsync(itemBatch.Msnv);
                 await page.Keyboard.PressAsync("Enter");
-                await Task.Delay(2000);
+                await Task.Delay(5000);
                 //string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
 
                 // 1. lấy full message
@@ -655,6 +657,13 @@ namespace batchInput_wpf.ViewsModel
 
                 // 2. định dạng lại 
                 string messageInputPO = rawText.Trim();
+
+
+                // 1.lấy title 
+                string rawTitle = await page.Locator(".header").InnerTextAsync();
+
+                // 2. định dạng lại title
+                string messageInputPOTitle = rawTitle.Trim();
 
                 if (messageInputPO.Contains("Start or Finish or Apply"))
                 {
@@ -677,10 +686,16 @@ namespace batchInput_wpf.ViewsModel
                 int numcheck = 0;
                 while (numcheck <= 3)
                 {
-                    if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
+                    // 1.l?y title 
+                    rawTitle = await page.Locator(".header").InnerTextAsync();
+
+                    // 2. d?nh d?ng l?i title
+                    messageInputPOTitle = rawTitle.Trim();
+                    //if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
+                    if (messageInputPOTitle.Contains("daily report work time input batch"))
                     {
-                        await page.WaitForFunctionAsync(
-                "() => document.title.includes('Daily Report work input batch')");
+                //        await page.WaitForFunctionAsync(
+                //"() => document.title.includes('Daily Report work input batch')");
                         AddLog($"ID:{itemBatch.ID} Hoàn thành Start ", LogStatus.Success);
                         await _service.update_desPO(itemBatch.ID, $"START DONE");
                         return true;
@@ -792,7 +807,10 @@ namespace batchInput_wpf.ViewsModel
                         int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0, cntSkipped = 0;
                         AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
                         await ScreenShot(page,item);
-                        for (int i = 0; i < listPo.Count; i++)
+
+                        
+
+                      for (int i = 0; i < listPo.Count; i++)
                         {
                             if (listPo[i].isComplate) cntSkipped++;
                             if (!listPo[i].isComplate)
@@ -885,6 +903,7 @@ namespace batchInput_wpf.ViewsModel
                                         AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: count không tăng (coutNow={coutNow}) -> đánh dấu 'Loi khong xac dinh'", LogStatus.Error);
                                         await _service.UpdateSTTPO(listPo[i].ID, false);
                                         await _service.update_desPO(listPo[i].ID, "Loi khong xac dinh");
+                                        runContext.HasUnknownError = true;
                                         await ScreenShot(page, item);
                                         await Task.Delay(1000);
                                     }
@@ -915,14 +934,13 @@ namespace batchInput_wpf.ViewsModel
                         await page.ClickAsync("#btnAllQtyActCopytoTotal");
                     }
                     await Task.Delay(2000);
+                    AddLog($"ID:{item.ID} [DIAG] Chốt lần 2 PoCount={runContext.PoCount}, DB={listPo.Count} PO, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}, txtPOCount: {await ReadPoCountDiagAsync(page)}");
+                    runContext.PoCount = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
                     await page.ClickAsync("#btnPOReadFinish");
                     await Task.Delay(4000);
 
-                    // 1. L?y toàn b? Text trong thẻ #txtMsg
-                    string rawText2 = await page.Locator("#txtMsg").InnerTextAsync();
 
-                    // 2. Ð?nh d?ng l?i van b?n (thay th? chu?i xu?ng dòng n?u c?n)
-                    string messageInputPO2 = rawText2.Trim();
+
                     int numcheck = 0;
                     //if (messageInputPO2.Contains(" Please try again after some time."))
                     //{
@@ -939,19 +957,12 @@ namespace batchInput_wpf.ViewsModel
                             else
                             {
                                 await Task.Delay(2000);
-                                //if (await btn.IsEnabledAsync())
-                                //{
-                                //    await page.ClickAsync("#btnAllQtyActCopytoTotal");
-                                //}
-                                //await Task.Delay(2000);
-                                //await page.ClickAsync("#btnPOReadFinish");
-                                //await Task.Delay(2000);
                                 await page.ClickAsync("#btnCancel");
                             }
                             
 
                             numcheck++;
-                            await Task.Delay(5000);
+                            await Task.Delay(10000);
                         }
                         return false;
                 }
@@ -1133,6 +1144,8 @@ namespace batchInput_wpf.ViewsModel
                     await _service.UpdateItem(ItemBatch.ID);
                     await _service.update_des(ItemBatch.ID, $"FINISH DONE ({runContext.PoCount}/{ItemBatch.ListPO.Count})");
                     await page.CloseAsync();
+                    await Deletefolder(ItemBatch.ID.ToString());
+                    await Deletefolder(@"Video\" + ItemBatch.ID.ToString());
                     return true;
                 }
                 else
