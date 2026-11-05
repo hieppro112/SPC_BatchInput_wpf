@@ -109,11 +109,19 @@ namespace batchInput_wpf.Service
             }
         }
 
-        public async Task update_runTime(int id)
+        public async Task update_runTime(int id, DateTime? datetime)
         {
             try
             {
-                var result = await _httpClient.PutAsync($"api/Batch/Update/RunTime/{id}", null);
+                if (datetime == null)
+                {
+                    var result = await _httpClient.PutAsync($"api/Batch/Update/RunTime/{id}", null);
+                }
+                else
+                {
+                    string encodeDateTime = Uri.EscapeDataString(datetime.Value.ToString("yyyy-MM-ddTHH:mm:ss"));
+                    var result = await _httpClient.PutAsync($"api/Batch/Update/RunTime/{id}?runTime={encodeDateTime}", null);
+                }
             }
             catch (Exception ex)
             {
@@ -122,6 +130,19 @@ namespace batchInput_wpf.Service
                 //return new List<ItemGetCount>();
             }
         }
+        public async Task update_runTime(int id)
+{
+    try
+    {
+        var result = await _httpClient.PutAsync($"api/Batch/Update/RunTime/{id}", null);
+    }
+    catch (Exception ex)
+    {
+        _log($"ID:{id} Ðã có l?i khi update runTime: " + ex.Message, LogStatus.Error);
+
+        //return new List<ItemGetCount>();
+    }
+}
 
         public async Task update_desPO(int id, string descrip)
         {
