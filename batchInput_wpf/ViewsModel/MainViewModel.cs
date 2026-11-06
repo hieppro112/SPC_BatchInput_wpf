@@ -481,58 +481,80 @@ namespace batchInput_wpf.ViewsModel
                     {
                         if (await AT_Login_terminalID(page, itemBatch.TerminalID, itemBatch) == true)
                         {
-                            
                             await Task.Delay(3000);
                             if (await AT_Operator_Shift(page, itemBatch))
                             {
                                 await Task.Delay(3000);
                                 if (await AT_ScanPO_own(page, itemBatch))
                                 {
-                                    await Task.Delay(3000);
-                                    bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO, itemBatch, itemContext);
-                                    AddLog($"ID:{itemBatch.ID} [DIAG] AT_Click_list_PO trả về {IscheckList}, PoCount={itemContext.PoCount}/{itemBatch.ListPO.Count}", IscheckList ? LogStatus.Running : LogStatus.Error);
-                                    await Task.Delay(3000);
-                                    if (IscheckList && itemBatch.start)
+                                    bool checkReload = false;
+                                    //kiem tra co can chay lai khong 
+                                    if (itemBatch.numRetry > 1)
+                                    {
+                                        checkReload =  await AT_Check_Current_PO(page, itemBatch,itemContext);
+                                    }
+
+                                    if (checkReload)
+                                    {
+                                        return await AT_end_PO(page, itemBatch,itemContext);
+                                    }
+                                    else
                                     {
                                         await Task.Delay(3000);
-                                        if (await AT_Click_start(page, itemBatch))
+                                        bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO, itemBatch, itemContext);
+                                        AddLog($"ID:{itemBatch.ID} [DIAG] AT_Click_list_PO tr? v? {IscheckList}, PoCount={itemContext.PoCount}/{itemBatch.ListPO.Count}", IscheckList ? LogStatus.Running : LogStatus.Error);
+                                        await Task.Delay(3000);
+
+
+
+                                        //cho truong hoop start
+                                        if (IscheckList && itemBatch.start)
                                         {
                                             await Task.Delay(3000);
-                                            if (await AT_Click_startAll(page, itemBatch))
+                                            if (await AT_Click_start(page, itemBatch))
                                             {
-                                                AddLog($"ID:{itemBatch.ID} Hoàn thành Start item: " + itemBatch.ID, LogStatus.Success);
-                                                
-                                                return await AT_end_PO(page, itemBatch,itemContext);
+                                                await Task.Delay(3000);
+                                                if (await AT_Click_startAll(page, itemBatch))
+                                                {
+                                                    AddLog($"ID:{itemBatch.ID} Hoàn thành Start item: " + itemBatch.ID, LogStatus.Success);
+
+                                                    return await AT_end_PO(page, itemBatch, itemContext);
+                                                }
+                                                else
+                                                {
+                                                    await ScreenShot(page, itemBatch);
+                                                    await page.CloseAsync();
+                                                    AddLog($"ID:{itemBatch.ID} Ðã có l?i khi ch?y start All ", LogStatus.Error);
+                                                }
                                             }
                                             else
                                             {
                                                 await ScreenShot(page, itemBatch);
-                                                await page.CloseAsync();
-                                                AddLog($"ID:{itemBatch.ID} Đã có lỗi khi chạy start All ", LogStatus.Error);
+                                                AddLog($"ID:{itemBatch.ID} Không vào du?c noi start ", LogStatus.Error);
+                                            }
+                                        }
+                                        //truong hop finish
+                                        else if (IscheckList && !itemBatch.start)
+                                        {
+                                            if (await AT_Click_Finish(page, itemBatch))
+                                            {
+                                                await Deletefolder(itemBatch.ID.ToString());
+                                                return await AT_end_PO(page, itemBatch, itemContext);
                                             }
                                         }
                                         else
                                         {
+                                            AddLog($"ID:{itemBatch.ID} Ðã có l?i t?i nh?p list PO ", LogStatus.Error);
                                             await ScreenShot(page, itemBatch);
-                                            AddLog($"ID:{itemBatch.ID} Không vào được nơi start ", LogStatus.Error);
+                                            await _service.update_des(itemBatch.ID, "Ðã có l?i t?i nh?p List PO.");
+                                            await page.CloseAsync();
+                                            //AT_end_PO(wait, driver);
                                         }
                                     }
-                                    else if (IscheckList && !itemBatch.start)
-                                    {
-                                        if (await AT_Click_Finish(page, itemBatch))
-                                        {
-                                            await Deletefolder(itemBatch.ID.ToString());
-                                            return await AT_end_PO(page, itemBatch,itemContext);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        AddLog($"ID:{itemBatch.ID} Đã có lỗi tại nhập list PO ", LogStatus.Error);
-                                        await ScreenShot(page, itemBatch);
-                                        await _service.update_des(itemBatch.ID, "Ðã có lỗi tại nhập List PO.");
-                                        await page.CloseAsync();
-                                        //AT_end_PO(wait, driver);
-                                    }
+
+
+
+                                   
                                 }
                                 else
                                 {
@@ -756,6 +778,34 @@ namespace batchInput_wpf.ViewsModel
             }
         }
 
+        // kiem tra nó đã được start từ trước chưa 
+        private async Task<bool> AT_Check_Current_PO(IPage page, BatchInputHistory item,RunContext runcontext)
+        {
+            try
+            {
+                await Task.Delay(10000);
+                string startTime = (await page.Locator("#lstBatchSub_txtAreaStartYmd_1").InputValueAsync()).Trim();
+                int.TryParse((await page.Locator("#txtPoRecCount").InputValueAsync()).Trim(), out int poRec);
+                int.TryParse((await page.Locator("#txtQtyUnRegisterdCount").InputValueAsync()).Trim(), out int unRegist);
+                string header = await page.Locator(".header").First.InnerTextAsync();
+
+                AddLog($"ID:{item.ID} [DIAG] Check hiện tại: startTime=\"{startTime}\", PO={poRec}/{item.ListPO.Count}, chưa đăng ký={unRegist}, header=\"{header.Trim()}\"");
+
+                if (item.start && header.Contains("daily report work time input batch") && !string.IsNullOrWhiteSpace(startTime)
+                    && poRec == item.ListPO.Count && unRegist == 0)
+                {
+                    AddLog($"ID:{item.ID} ĐÃ ĐƯỢC START TRƯỚC ĐO KHÔNG CẦN CHẠY LẠI ",LogStatus.Success);
+                    runcontext.PoCount = poRec;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"ID:{item.ID} Không kiểm tra được trạng thái PO hiện tại: {ex.Message}", LogStatus.Error);
+            }
+            return false;
+        }
+
         private async Task<bool> AT_Click_list_PO(IPage page, List<ListPO> listPo, BatchInputHistory item, RunContext runContext)
         {
             try
@@ -808,6 +858,11 @@ namespace batchInput_wpf.ViewsModel
                         AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
                         await ScreenShot(page,item);
 
+
+                        if (item.ID == 5954)
+                        {
+                            runContext.HasUnknownError = true;
+                        }
                         
 
                       for (int i = 0; i < listPo.Count; i++)
@@ -1134,7 +1189,7 @@ namespace batchInput_wpf.ViewsModel
                     await page.CloseAsync();
                     //delete video
                     await Deletefolder(ItemBatch.ID.ToString());
-                    await Deletefolder(@"Video\"+ItemBatch.ID.ToString());
+                    //await Deletefolder(@"Video\"+ItemBatch.ID.ToString());
 
                     return true;
 
