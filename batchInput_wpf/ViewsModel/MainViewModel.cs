@@ -11,6 +11,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using static MaterialDesignThemes.Wpf.Theme.ToolBar;
@@ -854,8 +855,21 @@ namespace batchInput_wpf.ViewsModel
                                             return results;
                                         }
                                     ");
-                        int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0, cntSkipped = 0;
-                        AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({listPo.Count(p => p.isComplate)} đã complete), web đang có sẵn {poList.Length} dòng PO, txtPOCount: {await ReadPoCountDiagAsync(page)}");
+                        //lay cac so PO tu danh sach tren web
+                        var poOnWeb = new HashSet<string>(
+                        poList.Select(r => Regex.Match(r, @"PO=(\S+)").Groups[1].Value.Trim())
+                              .Where(s => s != ""));
+
+                        // Chia 2 danh sach:
+                        //  - ListPOOnWeb: PO da co san tren web -> chi can danh dau trong DB, khong nhap lai
+                        //  - ListPORun  : PO chua complete trong DB va chua co tren web -> can nhap
+                        // PO da complete tu lan chay truoc nhung khong con tren web (da start o batch truoc) -> bo qua, khong nhap lai
+                        var ListPOOnWeb = listPo.Where(p => poOnWeb.Contains((p.Po ?? "").Trim()) && !p.isComplate).ToList();
+                        var ListPORun = listPo.Where(p => !p.isComplate && !poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
+
+                        int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0;
+                        int cntSkipped = listPo.Count(p => p.isComplate);
+                        AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({cntSkipped} đã complete trước đó), web đang có sẵn {poList.Length} dòng PO -> cần nhập {ListPORun.Count} PO, đánh dấu {ListPOOnWeb.Count} PO đã có trên web, txtPOCount: {await ReadPoCountDiagAsync(page)}");
                         await ScreenShot(page,item);
 
 
@@ -863,109 +877,118 @@ namespace batchInput_wpf.ViewsModel
                         {
                             runContext.HasUnknownError = true;
                         }
-                        
 
-                      for (int i = 0; i < listPo.Count; i++)
+                        //danh dau cac PO da co tren wweb 
+                        foreach (var poOnWebItem in ListPOOnWeb)
                         {
-                            if (listPo[i].isComplate) cntSkipped++;
-                            if (!listPo[i].isComplate)
+                            cntExist++;
+                            if (!poOnWebItem.isComplate)
                             {
-                                await Task.Delay(3000);
-                                //lay gia tri count hien tai
-                                int coutNow = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
-
-                                await page.ClickAsync("#lblDebug");
-                                AddLog($"ID:{item.ID} Tiến hành nhập PO thứ {i + 1}: {listPo[i].Po}");
-                                await page.Keyboard.TypeAsync(listPo[i].Po);
-                                //await page.FillAsync("#txtEditPO", listPo[i].Po);
-                                //await page.ClickAsync("#txtEditPO");
-                                await page.Keyboard.PressAsync("Enter");
-                                await Task.Delay(10000);
-
-
-                                //kiem tra ket qua sau khi xoa 
-                                await page.WaitForFunctionAsync(
-                                    "() => document.getElementById('txtMsg').innerText.trim() !== ''");
-
-                                //string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
-                                // 1. Lấy toàn bộ Text trong thẻ #txtMsg
-                                string rawText = await page.Locator("#txtMsg").InnerTextAsync();
-
-                                // 2. Định dạng lại văn bản (thay thế chuỗi xuống dòng nếu cần)
-                                string messageInputPO = rawText.Trim();
-
-                                Debug.WriteLine(messageInputPO);
-                                string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
-                                AddLog($"ID:{item.ID} [DIAG] PO {i + 1}/{listPo.Count} {listPo[i].Po}: coutNow={coutNow}, txtPOCount sau Enter: {await ReadPoCountDiagAsync(page)}, txtMsg=\"{msgOneLine}\"");
-
-                                if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not") || messageInputPO.Contains("ALL NG"))
-                                {
-                                    cntWebErr++;
-                                    AddLog($"ID:{item.ID} PO {listPo[i].Po} bị web từ chối: " + msgOneLine, LogStatus.Error);
-                                    await _service.update_desPO(listPo[i].ID, messageInputPO);
-                                    await _service.UpdateSTTPO(listPo[i].ID, false);
-
-                                    //await _service.update(listPo[i].ID, messageInputPO);
-
-                                    //return false;
-                                }
-                                else if (messageInputPO.Contains("or Apply"))
-                                {
-                                    //danh sách mã PO đã có trong bảng 
-                                    List<string> existingPoList = poList.Select(x => x.ToString().Trim()).ToList();
-                                    string currentPo = listPo[i].Po.Trim();
-
-                                    if (existingPoList.Any(x => x.Contains(currentPo)))
-                                    {
-                                        cntExist++;
-                                        AddLog($"ID:{item.ID} PO {listPo[i].Po} không được thêm vào danh sách vì dã tồn tại.", LogStatus.Error);
-                                        await _service.UpdateSTTPO(listPo[i].ID, true);
-                                        await _service.update_desPO(listPo[i].ID, "đã tồn tại");
-                                        await page.ClickAsync("#btnCancel");
-                                        await Task.Delay(2000);
-                                    }
-                                    else
-                                    {
-                                        // Nhanh nay truoc day khong lam gi va khong log: PO khong ghi nhan trang thai nao.
-                                        cntSilent++;
-                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: web trả 'or Apply' nhưng PO không có trong danh sách sẵn có -> chưa ghi trạng thái nào", LogStatus.Error);
-                                    }
-
-                                }
-                                else
-                                {
-                                    int numCheck = 0;
-                                    bool isCheck = false;
-                                    while (numCheck <= 3)
-                                    {
-                                        int coutNext = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
-                                        if ((coutNow < coutNext) && (coutNow != 0) && (coutNext != 0))
-                                        {
-                                            cntOk++;
-                                            await _service.UpdateSTTPO(listPo[i].ID, true);
-                                            await _service.update_desPO(listPo[i].ID, "OK");
-                                            await Task.Delay(1000);
-                                            isCheck = true;
-                                            break;
-                                        }
-                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: chờ count tăng lần {numCheck + 1}, coutNow={coutNow}, coutNext={coutNext}");
-                                        numCheck++;
-                                        await Task.Delay(3000);
-                                    }
-                                    if (!isCheck)
-                                    {
-                                        cntUnknown++;
-                                        AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: count không tăng (coutNow={coutNow}) -> đánh dấu 'Loi khong xac dinh'", LogStatus.Error);
-                                        await _service.UpdateSTTPO(listPo[i].ID, false);
-                                        await _service.update_desPO(listPo[i].ID, "Loi khong xac dinh");
-                                        runContext.HasUnknownError = true;
-                                        await ScreenShot(page, item);
-                                        await Task.Delay(1000);
-                                    }
-                                }
+                                AddLog($"ID:{item.ID} PO {poOnWebItem.Po} dã có sẵn trên web, dánh dấu hoàn thành không nhập li.");
+                                await _service.UpdateSTTPO(poOnWebItem.ID, true);
+                                await _service.update_desPO(poOnWebItem.ID, "dã tồn tại");
                             }
                         }
-                        AddLog($"ID:{item.ID} [DIAG] Tổng kết nhập PO ({listPo.Count} PO): OK={cntOk}, web từ chối={cntWebErr}, đã tồn tại={cntExist}, không ghi nhận (or Apply)={cntSilent}, count không tăng={cntUnknown}, bỏ qua do đã complete={cntSkipped}");
+
+                        for (int i = 0; i < ListPORun.Count; i++)
+                        {
+                            var po = ListPORun[i];
+                            await Task.Delay(3000);
+                            //lay gia tri count hien tai
+                            int coutNow = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+
+                            await page.ClickAsync("#lblDebug");
+                            AddLog($"ID:{item.ID} Tiến hành nhập PO thứ {i + 1}: {po.Po}");
+                            await page.Keyboard.TypeAsync(po.Po);
+                            //await page.FillAsync("#txtEditPO", po.Po);
+                            //await page.ClickAsync("#txtEditPO");
+                            await page.Keyboard.PressAsync("Enter");
+                            await Task.Delay(10000);
+
+
+                            //kiem tra ket qua sau khi xoa 
+                            await page.WaitForFunctionAsync(
+                                "() => document.getElementById('txtMsg').innerText.trim() !== ''");
+
+                            //string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
+                            // 1. Lấy toàn bộ Text trong thẻ #txtMsg
+                            string rawText = await page.Locator("#txtMsg").InnerTextAsync();
+
+                            // 2. Định dạng lại văn bản (thay thế chuỗi xuống dòng nếu cần)
+                            string messageInputPO = rawText.Trim();
+
+                            Debug.WriteLine(messageInputPO);
+                            string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
+                            AddLog($"ID:{item.ID} [DIAG] PO {i + 1}/{ListPORun.Count} {po.Po}: coutNow={coutNow}, txtPOCount sau Enter: {await ReadPoCountDiagAsync(page)}, txtMsg=\"{msgOneLine}\"");
+
+                            if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not") || messageInputPO.Contains("ALL NG"))
+                            {
+                                cntWebErr++;
+                                AddLog($"ID:{item.ID} PO {po.Po} bị web từ chối: " + msgOneLine, LogStatus.Error);
+                                await _service.update_desPO(po.ID, messageInputPO);
+                                await _service.UpdateSTTPO(po.ID, false);
+
+                                //await _service.update(po.ID, messageInputPO);
+
+                                //return false;
+                            }
+                            //else if (messageInputPO.Contains("or Apply"))
+                            //{
+                            //    //danh sách mã PO đã có trong bảng 
+                            //    List<string> existingPoList = poList.Select(x => x.ToString().Trim()).ToList();
+                            //    string currentPo = po.Po.Trim();
+
+                            //    if (existingPoList.Any(x => x.Contains(currentPo)))
+                            //    {
+                            //        cntExist++;
+                            //        AddLog($"ID:{item.ID} PO {po.Po} không được thêm vào danh sách vì dã tồn tại.", LogStatus.Error);
+                            //        await _service.UpdateSTTPO(po.ID, true);
+                            //        await _service.update_desPO(po.ID, "đã tồn tại");
+                            //        await page.ClickAsync("#btnCancel");
+                            //        await Task.Delay(2000);
+                            //    }
+                            //    else
+                            //    {
+                            //        // Nhanh nay truoc day khong lam gi va khong log: PO khong ghi nhan trang thai nao.
+                            //        cntSilent++;
+                            //        AddLog($"ID:{item.ID} [DIAG] PO {po.Po}: web trả 'or Apply' nhưng PO không có trong danh sách sẵn có -> chưa ghi trạng thái nào", LogStatus.Error);
+                            //    }
+
+                            //}
+                            else
+                            {
+                                int numCheck = 0;
+                                bool isCheck = false;
+                                while (numCheck <= 3)
+                                {
+                                    int coutNext = await page.Locator("#txtPOCount").GetAttributeAsync("value").ContinueWith(t => int.Parse(t.Result ?? "0"));
+                                    if ((coutNow < coutNext) && (coutNow != 0) && (coutNext != 0))
+                                    {
+                                        cntOk++;
+                                        await _service.UpdateSTTPO(po.ID, true);
+                                        await _service.update_desPO(po.ID, "OK");
+                                        await Task.Delay(1000);
+                                        isCheck = true;
+                                        break;
+                                    }
+                                    AddLog($"ID:{item.ID} [DIAG] PO {po.Po}: chờ count tăng lần {numCheck + 1}, coutNow={coutNow}, coutNext={coutNext}");
+                                    numCheck++;
+                                    await Task.Delay(3000);
+                                }
+                                if (!isCheck)
+                                {
+                                    cntUnknown++;
+                                    AddLog($"ID:{item.ID} [DIAG] PO {po.Po}: count không tăng (coutNow={coutNow}) -> đánh dấu 'Loi khong xac dinh'", LogStatus.Error);
+                                    await _service.UpdateSTTPO(po.ID, false);
+                                    await _service.update_desPO(po.ID, "Loi khong xac dinh");
+                                    runContext.HasUnknownError = true;
+                                    await ScreenShot(page, item);
+                                    await Task.Delay(1000);
+                                }
+                            }
+                        //}
+                        }
+                        AddLog($"ID:{item.ID} [DIAG] Tổng kết nhập PO (tổng {listPo.Count} PO): bỏ qua do đã complete trước đó={cntSkipped}, đã có sẵn trên web={cntExist} | trong {ListPORun.Count} PO cần nhập: OK={cntOk}, web từ chối={cntWebErr}, không ghi nhận (or Apply)={cntSilent}, count không tăng={cntUnknown}");
                     }
 
                     int numtry = 0;
