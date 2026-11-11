@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>icons8-input-96.ico</ApplicationIcon>
+    <ApplicationIcon>simple.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="icons8-input-96.ico" />
+    <Resource Include="simple.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,5 +48,18 @@
     <PackageReference Include="Selenium.WebDriver.MSEdgeDriver" Version="155.0.4283.60" />
     <PackageReference Include="System.Net.Http.Json" Version="10.0.14" />
   </ItemGroup>
+
+  <!--
+    Playwright kèm tài liệu .md cho AI (lib\tools\skills\..., bản cũ là lib\tools\cli-client\skill\...),
+    app không dùng khi chạy. Đường dẫn các file này lồng rất sâu nên khi publish ClickOnce vượt 260 ký tự
+    và publish bị lỗi. Bỏ chúng khỏi build / publish (chạy sau target CopyPlaywrightFilesToOutput của Playwright).
+  -->
+  <Target Name="RemovePlaywrightSkillDocs" AfterTargets="CopyPlaywrightFilesToOutput">
+    <ItemGroup>
+      <_PlaywrightSkillDocs Include="@(Content)"
+                            Condition="'%(Content.NuGetPackageId)' == 'Microsoft.Playwright' And '%(Content.Extension)' == '.md' And $([System.String]::Copy('%(Content.Link)').Contains('\tools\')) And $([System.String]::Copy('%(Content.Link)').Contains('\skill'))" />
+      <Content Remove="@(_PlaywrightSkillDocs)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

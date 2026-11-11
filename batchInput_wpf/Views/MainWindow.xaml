@@ -10,7 +10,7 @@
         MinHeight="700" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
         Background="#07090E"
-        Foreground="#00E5FF" Closing="Window_Closing">
+        Foreground="#00E5FF" Closing="Window_Closing" Icon="/simple.ico">
 
     <Window.Resources>
         <!-- HIGH-TECH NEON BUTTON - OPEN (CYAN/GREEN) -->
@@ -260,8 +260,9 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="151*"/>
-            <ColumnDefinition Width="49*"/>
+            <ColumnDefinition Width="746*"/>
+            <ColumnDefinition Width="312*"/>
+            <ColumnDefinition Width="343*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="65"/>
@@ -269,7 +270,7 @@
         </Grid.RowDefinitions>
 
         <!-- TOP CYBER HEADER -->
-        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1" Grid.ColumnSpan="2">
+        <Border Grid.Row="0" Background="#0D111A" BorderBrush="#00E5FF" BorderThickness="0,0,0,1" Grid.ColumnSpan="3">
             <Border.Effect>
                 <DropShadowEffect Color="#00E5FF" BlurRadius="12" ShadowDepth="1" Opacity="0.3"/>
             </Border.Effect>
@@ -287,7 +288,7 @@
                 <!-- System Branding -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
                     <TextBlock Text="⚡" FontSize="20" Foreground="#00E5FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock Text="ORDER CHECK SYSTEM" 
+                    <TextBlock Text="BATCH INPUT HEATGUIDE IOT" 
                                FontWeight="Black" 
                                FontSize="20" 
                                Foreground="#FFFFFF"
@@ -338,7 +339,7 @@
         </Border>
 
         <!-- MAIN DASHBOARD CONTENT -->
-        <Grid Grid.Row="1" Margin="15,15,15,15" Grid.ColumnSpan="2">
+        <Grid Grid.Row="1" Margin="15,15,15,15" Grid.ColumnSpan="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="3*"/>
                 <RowDefinition Height="2*"/>

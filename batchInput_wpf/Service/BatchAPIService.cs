@@ -16,7 +16,7 @@ namespace batchInput_wpf.Service
         {
             _log = log;
             _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri("http://192.168.122.15:5044/"); // Thay đổi URL theo API của bạn
+            _httpClient.BaseAddress = new Uri("http://192.168.122.15:5009"); //Link API
         }
 
         public async Task<PagedResult<BatchInputHistory>> GetAllProductAsync(int pageNumber, int pageSize)

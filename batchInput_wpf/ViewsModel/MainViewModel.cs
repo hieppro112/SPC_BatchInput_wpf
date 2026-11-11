@@ -929,16 +929,29 @@ namespace batchInput_wpf.ViewsModel
                         bool alreadyComplete = itemBatch.ListPO[i].isComplate;
                         if (isRetry && !alreadyComplete && itemBatch.description.Contains("SL")) continue;
                         string message = "";
+                        string? rawText = "";
                         int checkint = 0;
                         do
                         {
                             await event_PoOwn(page, itemBatch, i);
 
-                            // 1. l?y full message
-                            string rawText = await page.Locator("#txtMsg").InnerTextAsync();
-
-                            // 2. d?nh d?ng l?i
+                            // 1. lấy full message
+                            //rawText = await page.Locator("#dlgMessage").InnerTextAsync()??"";
+                            rawText = await SearchElement(page, "dlgMessage");
+                            // 2. Định đạng lại
                             message = rawText.Trim();
+
+                            await Task.Delay(3000);
+                            //lay message ở trên khi không lấy được của dialog
+                            if(string.IsNullOrWhiteSpace(message))
+                            {
+                                await Task.Delay(1000);
+
+                                // 1. lấy full message
+                                rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                                // 2. Định đạng lại
+                                message = rawText.Trim();
+                            }
                             checkint++;
                         } while (message.Contains("PO(Select BatchID)") && checkint < 3);
 
@@ -980,7 +993,7 @@ namespace batchInput_wpf.ViewsModel
         {
             await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
             await page.Keyboard.PressAsync("Enter");
-            await Task.Delay(5000);
+            //await Task.Delay(5000);
         }
 
         private async Task<bool> AT_Operator_Shift(IPage page, BatchInputHistory itemBatch)
@@ -1173,6 +1186,19 @@ namespace batchInput_wpf.ViewsModel
             if (Directory.Exists(path))
             {
                 Directory.Delete(path, true);
+            }
+        }
+
+        private async Task<string> SearchElement(IPage page,string idDiv)
+        {
+            try
+            {
+                string rawcontent = await page.Locator($"#{idDiv}").InnerTextAsync(new() { Timeout = 3000});
+                return rawcontent ?? "";
+            }
+            catch (System.TimeoutException)
+            {
+                return "";
             }
         }
 

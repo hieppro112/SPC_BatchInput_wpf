@@ -10,7 +10,7 @@ namespace batchInput_wpf.Helper
     // va dau hieu "bi kill tu ben ngoai" (khong de lai exception nao) qua file heartbeat.
     public static class CrashLogger
     {
-        private const string Dir = @"C:\BatchInput_config";
+        private const string Dir = @"C:\BatchInput_HeatGuild_config";
         private static readonly string LogPath = Path.Combine(Dir, "crash.log");
         private static readonly string HeartbeatPath = Path.Combine(Dir, "heartbeat.txt");
         private static readonly object FileLock = new();
