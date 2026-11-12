@@ -98,6 +98,8 @@ namespace batchInput_wpf.ViewsModel
                     PagedBatchInputHistories.Clear();
                     foreach (var item in page.Items)
                     {
+                        // Luong khac co the dang chay item nay: gan lai nhan trang thai sau khi lam moi luoi
+                        if (_statusById.TryGetValue(item.ID, out var status)) item.Status = status;
                         PagedBatchInputHistories.Add(item);
                     }
 
@@ -147,13 +149,12 @@ namespace batchInput_wpf.ViewsModel
         // Dem theo ID item (ket qua cuoi cung trong phien): item loi roi chay lai thanh cong se tinh la thanh cong.
         // Khong dem tu ItemStatus tren luoi vi cac item tren luoi bi tao moi moi lan lam moi trang.
         private readonly ConcurrentDictionary<int, bool> _sessionResults = new();
-        private int _sessionRunning;
-        private int _sessionWaiting;
 
         public int SessionSuccess => _sessionResults.Count(r => r.Value);
         public int SessionError => _sessionResults.Count(r => !r.Value);
-        public int SessionRunning => Math.Max(0, _sessionRunning);
-        public int SessionWaiting => Math.Max(0, _sessionWaiting);
+        // Dang chay / dang doi lay truc tiep tu hang doi chung (xem vung "Hang doi chung")
+        public int SessionRunning { get { lock (_queueLock) { return _runningIds.Count; } } }
+        public int SessionWaiting { get { lock (_queueLock) { return _queue.Count; } } }
         public string SessionSuccessRate
         {
             get
@@ -195,143 +196,322 @@ namespace batchInput_wpf.ViewsModel
             //await Task.CompletedTask;
         }
 
+        #region Hang doi chung & cac luong chay (Work queue)
+        // Y tuong: cac luong KHONG cho nhau. Moi luong tu lay item ke tiep trong hang doi chung;
+        // hang doi het thi 1 luong (co khoa) goi API lam moi, cac luong khac van chay tiep roi dung ket qua do.
+
+        // Chay du so item nay thi ket thuc luot de thay browser moi (tranh phinh RAM)
+        private const int MaxItemsPerBrowser = 30;
+
+        private readonly object _queueLock = new();
+        private readonly List<BatchInputHistory> _queue = new();                 // item dang cho
+        private readonly HashSet<int> _runningIds = new();                       // item dang chay (de khong nhan trung)
+        private readonly HashSet<string> _runningTerminals = new(StringComparer.OrdinalIgnoreCase); // terminal dang chay
+        private readonly HashSet<int> _doneThisCycle = new();                    // item da xu ly trong luot nay
+        private readonly SemaphoreSlim _refillLock = new(1, 1);                  // moi luc chi 1 luong goi API lam moi
+        private readonly ConcurrentDictionary<int, ItemStatus> _statusById = new(); // nhan trang thai theo ID, khong mat khi luoi bi tao lai
+        private int _itemsTakenThisCycle;
+        private bool _continueImmediately;                                       // luot ket thuc nhung con viec -> chay luot ke tiep ngay
+
+        // Thoi gian cho (giay) khi luong ranh ma luong khac van dang chay
+        private int IdleWaitSeconds => Math.Clamp(_itemSaveConfig.PollDelaySeconds, 5, 60);
+
+        // Chi goi trong lock(_queueLock): terminal cua item nay dang duoc luong khac dung?
+        private bool IsBlockedByTerminal(BatchInputHistory item) =>
+            !string.IsNullOrEmpty(item.TerminalID) && _runningTerminals.Contains(item.TerminalID);
+
+        // Dong bo giao dien: luu trang thai theo ID, roi tim dong HIEN TAI tren luoi de cap nhat.
+        // Khong giu tham chieu dong cu nen luong khac lam moi luoi cung khong lam mat nhan.
+        private void SetItemStatus(int id, ItemStatus status)
+        {
+            _statusById[id] = status;
+            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var row = PagedBatchInputHistories.FirstOrDefault(x => x.ID == id);
+                if (row != null) row.Status = status;
+            }));
+        }
+
+        private bool HasRunnableItem()
+        {
+            lock (_queueLock)
+            {
+                return _queue.Any(i => !IsBlockedByTerminal(i));
+            }
+        }
+
+        // Lay danh sach moi tu API va GOP vao hang doi (bo qua item dang chay / da co trong hang doi / da xu ly trong luot nay).
+        // Tra ve true neu co item chay duoc.
+        private async Task<bool> RefillQueueAsync()
+        {
+            await _refillLock.WaitAsync();
+            try
+            {
+                // Luong khac vua lam moi xong thi dung ket qua cua no, khong goi API them
+                if (HasRunnableItem()) return true;
+
+                var list = await _service.GetProduct_notComplate_Async();
+
+                lock (_queueLock)
+                {
+                    foreach (var item in list)
+                    {
+                        if (_runningIds.Contains(item.ID) || _doneThisCycle.Contains(item.ID) || _queue.Any(q => q.ID == item.ID)) continue;
+                        _queue.Add(item);
+                    }
+                }
+                NotifySessionStats();
+
+                return HasRunnableItem();
+            }
+            finally
+            {
+                _refillLock.Release();
+            }
+        }
+
+        // Lay item ke tiep de chay. Tra ve null khi: het viec (khong con luong nao dang chay), dang Pause,
+        // hoac da chay du so item cua 1 browser.
+        private async Task<BatchInputHistory?> TakeNextItemAsync()
+        {
+            while (IsRunning)
+            {
+                BatchInputHistory? next = null;
+                bool limitReached = false;
+
+                lock (_queueLock)
+                {
+                    if (_itemsTakenThisCycle >= MaxItemsPerBrowser)
+                    {
+                        limitReached = true;
+                        _continueImmediately = true;
+                    }
+                    else
+                    {
+                        // Item dau tien chua bi chan boi terminal dang chay
+                        next = _queue.FirstOrDefault(i => !IsBlockedByTerminal(i));
+                        if (next != null)
+                        {
+                            _queue.Remove(next);
+                            _runningIds.Add(next.ID);
+                            if (!string.IsNullOrEmpty(next.TerminalID)) _runningTerminals.Add(next.TerminalID);
+                            _itemsTakenThisCycle++;
+                        }
+                    }
+                }
+
+                if (limitReached) return null;
+                if (next != null)
+                {
+                    NotifySessionStats();
+                    return next;
+                }
+
+                // Hang doi het: lam moi (1 luong lam, luong khac cho roi dung ket qua)
+                if (await RefillQueueAsync()) continue;
+
+                // Khong co gi moi. Neu khong con luong nao dang chay thi het viec -> ket thuc luot (dong browser)
+                bool someoneRunning;
+                lock (_queueLock)
+                {
+                    someoneRunning = _runningIds.Count > 0;
+                }
+                if (!someoneRunning) return null;
+
+                // Con luong khac dang chay: cho 1 luc roi hoi lai (de nhan item moi, hoac item het bi chan do trung terminal)
+                await Task.Delay(IdleWaitSeconds * 1000);
+            }
+
+            return null;
+        }
+
+        private void ReleaseItem(BatchInputHistory item)
+        {
+            lock (_queueLock)
+            {
+                _runningIds.Remove(item.ID);
+                if (!string.IsNullOrEmpty(item.TerminalID)) _runningTerminals.Remove(item.TerminalID);
+                _doneThisCycle.Add(item.ID);
+            }
+            NotifySessionStats();
+        }
+
+        // Vong lap cua 1 luong: lay item -> chay -> lam moi giao dien -> lay item tiep. Khong cho luong nao khac.
+        private async Task WorkerLoopAsync(IBrowser browser)
+        {
+            while (IsRunning)
+            {
+                if (!browser.IsConnected)
+                {
+                    AddLog("Trình duyệt đã bị đóng hoặc chết, kết thúc lượt này để mở trình duyệt mới.", LogStatus.Error);
+                    _continueImmediately = true;
+                    break;
+                }
+
+                var item = await TakeNextItemAsync();
+                if (item == null) break;
+
+                try
+                {
+                    await ProcessItemAsync(browser, item);
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"ID:{item.ID} Lỗi không mong muốn khi chạy item: {ex.Message}", LogStatus.Error);
+                    _sessionResults[item.ID] = false;
+                    SetItemStatus(item.ID, ItemStatus.Error);
+                }
+                finally
+                {
+                    ReleaseItem(item);
+                }
+
+                // Dong bo giao dien: tai lai trang dang xem de thay du lieu moi nhat (mo ta, so lan chay...)
+                try
+                {
+                    await RefreshCurrentPageAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Lỗi làm mới lưới: " + ex.Message);
+                }
+            }
+        }
+
+        // Chay 1 item (kem chay lai khi gap "Loi khong xac dinh").
+        private async Task ProcessItemAsync(IBrowser browser, BatchInputHistory item)
+        {
+            // So lan chay LAI toi da khi gap "Loi khong xac dinh" (tong so lan chay = 1 + MaxRetry)
+            const int MaxRetry = 3;
+            bool result_run = false;
+            int retryCount = 0;
+            RunContext runContext;
+            do
+            {
+                // Moi lan chay dung context moi de co loi duoc reset
+                runContext = new RunContext();
+
+                SetItemStatus(item.ID, ItemStatus.Running);
+                AddLog("Bắt đầu AutoClick BatchInput item: " + item.ID);
+
+                // Danh dau "toi dang chay item nay" ngay lap tuc
+                await _service.update_numRetry(item.ID);
+                await _service.update_runTime(item.ID);
+
+                result_run = await event_auto_web(browser, item, runContext);
+                RenameItemVideos(item.ID);
+
+                SetItemStatus(item.ID, result_run ? ItemStatus.Success : ItemStatus.Error);
+
+                // Chi chay lai khi batch that bai VA co PO "Loi khong xac dinh";
+                // batch da thanh cong thi khong chay lai de tranh nhap trung.
+            } while (!result_run && runContext.HasUnknownError && ++retryCount <= MaxRetry);
+
+            _sessionResults[item.ID] = result_run;
+            NotifySessionStats();
+
+            Debug.WriteLine($"Item {item.ID} retry: {Math.Min(retryCount, MaxRetry)}/{MaxRetry}");
+
+            // Ghi log loi neu da chay lai du so lan ma van con "Loi khong xac dinh"
+            if (!result_run && runContext.HasUnknownError)
+            {
+                AddLog($"ID:{item.ID} Đã chạy lại {MaxRetry} lần nhưng vẫn còn PO 'Loi khong xac dinh'", LogStatus.Error);
+                string parse_json = JsonSerializer.Serialize(item);
+                string fileName = $"{item.ID}_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_err.json";
+                string filePath = Path.Combine(_itemSaveConfig.pathLogErr, fileName);
+
+                if (!Directory.Exists(_itemSaveConfig.pathLogErr))
+                {
+                    Directory.CreateDirectory(_itemSaveConfig.pathLogErr);
+                }
+
+                await File.WriteAllTextAsync(filePath, parse_json);
+            }
+        }
+
+        // Chay 1 "luot": mo 1 browser, cac luong cung lay viec tu hang doi cho den khi het viec.
+        // Tra ve true neu luot bi ket thuc de thay browser trong luc van con viec (chay luot ke tiep ngay).
+        private async Task<bool> RunCycleAsync()
+        {
+            lock (_queueLock)
+            {
+                _queue.Clear();
+                _doneThisCycle.Clear();
+                _itemsTakenThisCycle = 0;
+                _continueImmediately = false;
+            }
+
+            // Khong co viec thi khong mo browser
+            if (!await RefillQueueAsync())
+            {
+                NotifySessionStats();
+                return false;
+            }
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Channel = "msedge",
+                Headless = _itemSaveConfig.HeadlessMode,//lay trong file config gan vao
+                Args = new[]
+                {
+                    "--disable-blink-features=AutomationControlled", // Tắt cờ báo Automation
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--mute-audio",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-renderer-backgrounding"
+                }
+            });
+
+            // So luong chay song song lay tu cau hinh (nut Config)
+            int threads = Math.Max(1, _itemSaveConfig.MaxThreads);
+            await Task.WhenAll(Enumerable.Range(0, threads).Select(_ => WorkerLoopAsync(browser)));
+
+            lock (_queueLock)
+            {
+                _queue.Clear();
+            }
+            NotifySessionStats();
+
+            return _continueImmediately;
+        }
+        #endregion
+
         private async Task LoadBatchInput()
         {
             _itemSaveConfig = _myFileHelper.ReadJson();
             while (true)
             {
+                bool continueNow = false;
                 try
                 {
-                    // 1. Tải đúng trang đang hiển thị (không GetAll toàn bộ bảng)
+                    // Lam moi luoi danh sach (dau moi luot)
                     await RefreshCurrentPageAsync();
 
-                    // 2. Lấy danh sách các item chưa hoàn thành
-                    var result_notcomplate = await _service.GetProduct_notComplate_Async();
-                    Interlocked.Exchange(ref _sessionWaiting, result_notcomplate?.Count ?? 0);
-                    NotifySessionStats();
-
-                    if (IsRunning && result_notcomplate != null && result_notcomplate.Count > 0)
+                    if (IsRunning)
                     {
-
-                        using var playwright = await Playwright.CreateAsync();
-                        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-                        {
-                            Channel = "msedge",
-                            Headless = _itemSaveConfig.HeadlessMode,//lay trong file config gan vao 
-                            Args = new[]
-                            {
-                        "--disable-blink-features=AutomationControlled", // Tắt cờ báo Automation
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-gpu",
-                        "--disable-extensions",
-                        "--mute-audio",
-                        "--disable-background-timer-throttling",
-                        "--disable-backgrounding-occluded-windows",
-                        "--disable-renderer-backgrounding"
-                    }
-                        });
-
-
-
-                        // Số luồng chạy song song lấy từ cấu hình (nút Config)
-                        var parallelOptions = new ParallelOptions
-                        {
-                            MaxDegreeOfParallelism = Math.Max(1, _itemSaveConfig.MaxThreads)
-                        };
-                        await Parallel.ForEachAsync(result_notcomplate, parallelOptions, async (item, token) =>
-                        {
-                            if (!IsRunning) return;
-
-                            Interlocked.Decrement(ref _sessionWaiting);
-                            Interlocked.Increment(ref _sessionRunning);
-                            NotifySessionStats();
-
-                            // Chỉ có the cập nhật UI nếu item đang nằm trong trang hiển thị hiện tại
-                            // (vì đã chuyển sang phân trang phía server, không còn giữ toàn bộ danh sách ở client).
-                            // Dùng Dispatcher.Invoke (đồng bộ) để đọc PagedBatchInputHistories ngay trên UI thread,
-                            // tránh truy cập ObservableCollection đồng thời từ background thread trong lúc
-                            // UI thread có thể đang Clear()/Add() lại danh sách (gây InvalidOperationException).
-                            BatchInputHistory uiItem = null;
-                            App.Current.Dispatcher.Invoke(() =>
-                            {
-                                uiItem = PagedBatchInputHistories.FirstOrDefault(x => x.ID == item.ID);
-                            });
-
-                            // Cập nhật trạng thái Running (Không dùng Invoke chờ)
-                            if (uiItem != null)
-                            {
-                                App.Current.Dispatcher.BeginInvoke(new Action(() => uiItem.Status = ItemStatus.Running));
-                            }
-
-                            // Số lần chạy LẠI tối đa khi gặp "Loi khong xac dinh" (tổng số lần chạy = 1 + MaxRetry)
-                            const int MaxRetry = 3;
-                            bool result_run = false;
-                            int retryCount = 0;
-                            RunContext runContext;
-                            do
-                            {
-                                // Mỗi lần chạy dùng context mới để cờ lỗi được reset
-                                runContext = new RunContext();
-
-                                // Thêm log bất đồng bộ lên UI
-                                App.Current.Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    AddLog("Bắt đầu AutoClick BatchInput item: " + item.ID);
-                                }));
-
-                                // Thực thi tác vụ Auto Web (Giải phóng hoàn toàn khỏi UI Thread)
-                                await _service.update_numRetry(item.ID);
-                                result_run = await event_auto_web(browser, item, runContext);
-                                RenameItemVideos(item.ID);
-
-                                // Cập nhật trạng thái Success / Error
-                                if (uiItem != null)
-                                {
-                                    App.Current.Dispatcher.BeginInvoke(new Action(() =>
-                                    {
-                                        uiItem.Status = result_run ? ItemStatus.Success : ItemStatus.Error;
-                                    }));
-                                }
-
-                                // Chỉ chạy lại khi batch thất bại VÀ có PO "Loi khong xac dinh";
-                                // batch đã thành công thì không chạy lại để tránh nhập trùng.
-                            } while (!result_run && runContext.HasUnknownError && ++retryCount <= MaxRetry);
-
-                            _sessionResults[item.ID] = result_run;
-                            Interlocked.Decrement(ref _sessionRunning);
-                            NotifySessionStats();
-
-                            Debug.WriteLine($"Item {item.ID} retry: {Math.Min(retryCount, MaxRetry)}/{MaxRetry}");
-
-                            // Ghi log lỗi nếu đã chạy lại đủ số lần mà vẫn còn "Loi khong xac dinh"
-                            if (!result_run && runContext.HasUnknownError)
-                            {
-                                AddLog($"ID:{item.ID} Đã chạy lại {MaxRetry} lần nhưng vẫn còn PO 'Loi khong xac dinh'", LogStatus.Error);
-                                string parse_json = JsonSerializer.Serialize(item);
-                                string fileName = $"{item.ID}_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_err.json";
-                                string filePath = Path.Combine(_itemSaveConfig.pathLogErr, fileName);
-
-                                if (!Directory.Exists(_itemSaveConfig.pathLogErr))
-                                {
-                                    Directory.CreateDirectory(_itemSaveConfig.pathLogErr);
-                                }
-
-                                await File.WriteAllTextAsync(filePath, parse_json);
-                                
-                            }
-                        });
+                        continueNow = await RunCycleAsync();
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("Lỗi trong vòng lặp BatchInput: " + ex.Message);
                     AddLog("Lỗi trong vòng lặp BatchInput: " + ex.Message, LogStatus.Error);
+                }
 
+                // Luot bi cat de thay browser nhung con viec: chay luot ke tiep sau it giay
+                if (continueNow)
+                {
+                    await Task.Delay(3000);
+                    continue;
                 }
 
                 Console.WriteLine("length: " + TotalItems);
-                await Task.Delay(_itemSaveConfig.PollDelaySeconds *1000);
+                await Task.Delay(_itemSaveConfig.PollDelaySeconds * 1000);
                 AddLog("Reload List", LogStatus.Running);
             }
         }
@@ -931,8 +1111,6 @@ namespace batchInput_wpf.ViewsModel
                                 messageInputPO = rawText.Trim();
                             }
 
-
-
                             Debug.WriteLine(messageInputPO);
                             string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
                             AddLog($"ID:{item.ID} [DIAG] PO {i + 1}/{ListPORun.Count} {po.Po}: coutNow={coutNow}, txtPOCount sau Enter: {await ReadPoCountDiagAsync(page)}, txtMsg=\"{msgOneLine}\"");
@@ -1087,7 +1265,7 @@ namespace batchInput_wpf.ViewsModel
 
                     }//xoa toàn b? label tru?c dó
 
-                    AddLog($"ID:{itemBatch.ID} Ti?n hành Nh?p 1 PO d?i di?n");
+                    AddLog($"ID:{itemBatch.ID} Tiến hành nhập 1 Po đại diện");
 
                     // Chay lai (numRetry >= 1): web gom theo nhom, PO dai dien quyet dinh phien vao nhom nao.
                     // nen chi thu cac PO DA complete (thuoc nhom cu) de vao lai dung nhom, chay 1 luot duy nhat.
@@ -1228,7 +1406,7 @@ namespace batchInput_wpf.ViewsModel
         private async Task<bool> AT_end_PO(IPage page, BatchInputHistory ItemBatch,RunContext runContext)
         {
             try
-            {
+           {
                 await page.GotoAsync("http://10.4.24.117:8449/LG0100.aspx");
                 await page.WaitForFunctionAsync(
                     "() => document.title.includes('Daily Report Login')");
