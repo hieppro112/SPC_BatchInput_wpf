@@ -903,19 +903,35 @@ namespace batchInput_wpf.ViewsModel
                             //await page.FillAsync("#txtEditPO", po.Po);
                             //await page.ClickAsync("#txtEditPO");
                             await page.Keyboard.PressAsync("Enter");
-                            await Task.Delay(10000);
+                            //await Task.Delay(10000);
 
 
                             //kiem tra ket qua sau khi xoa 
-                            await page.WaitForFunctionAsync(
-                                "() => document.getElementById('txtMsg').innerText.trim() !== ''");
+                            //await page.WaitForFunctionAsync(
+                            //    "() => document.getElementById('txtMsg').innerText.trim() !== ''");
 
                             //string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
-                            // 1. Lấy toàn bộ Text trong thẻ #txtMsg
-                            string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
-                            // 2. Định dạng lại văn bản (thay thế chuỗi xuống dòng nếu cần)
-                            string messageInputPO = rawText.Trim();
+                            string rawText = "";
+                            string messageInputPO = "";
+
+                            // 1. lấy full message
+                            //rawText = await page.Locator("#dlgMessage").InnerTextAsync()??"";
+                            rawText = await SearchElement(page, "dlgMessage");
+                            // 2. Định đạng lại
+                            messageInputPO = rawText.Trim();
+
+                            await Task.Delay(3000);
+                            //lay message ở trên khi không lấy được của dialog
+                            if (string.IsNullOrWhiteSpace(messageInputPO))
+                            {
+                                // 1. lấy full message
+                                rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                                // 2. Định đạng lại
+                                messageInputPO = rawText.Trim();
+                            }
+
+
 
                             Debug.WriteLine(messageInputPO);
                             string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
@@ -1060,7 +1076,7 @@ namespace batchInput_wpf.ViewsModel
                 if ((await page.TitleAsync()).Contains("Daily Report work input batch"))
                 {
                     await page.ClickAsync("#txtPO");
-                    AddLog($"ID:{itemBatch.ID} Đã vào {await page.TitleAsync()}", LogStatus.Success);
+                    AddLog($"ID:{itemBatch.ID} Ðã vào {await page.TitleAsync()}", LogStatus.Success);
                     await page.ClickAsync("#lblStatus");
 
                     string s_result = await page.Locator("#lblDebug").InnerTextAsync();
@@ -1069,9 +1085,9 @@ namespace batchInput_wpf.ViewsModel
                     {
                         await page.Keyboard.PressAsync("Backspace");
 
-                    }//xoa toàn bộ label trước đó
+                    }//xoa toàn b? label tru?c dó
 
-                    AddLog($"ID:{itemBatch.ID} Tiến hành Nhập 1 PO đại điện");
+                    AddLog($"ID:{itemBatch.ID} Ti?n hành Nh?p 1 PO d?i di?n");
 
                     // Chay lai (numRetry >= 1): web gom theo nhom, PO dai dien quyet dinh phien vao nhom nao.
                     // nen chi thu cac PO DA complete (thuoc nhom cu) de vao lai dung nhom, chay 1 luot duy nhat.
@@ -1082,26 +1098,39 @@ namespace batchInput_wpf.ViewsModel
                         bool alreadyComplete = itemBatch.ListPO[i].isComplate;
                         if (isRetry && !alreadyComplete && itemBatch.description.Contains("SL")) continue;
                         string message = "";
+                        string? rawText = "";
                         int checkint = 0;
                         do
                         {
                             await event_PoOwn(page, itemBatch, i);
 
                             // 1. l?y full message
-                            string rawText = await page.Locator("#txtMsg").InnerTextAsync();
-
-                            // 2. d?nh d?ng l?i
+                            //rawText = await page.Locator("#dlgMessage").InnerTextAsync()??"";
+                            rawText = await SearchElement(page, "dlgMessage");
+                            // 2. Ð?nh d?ng l?i
                             message = rawText.Trim();
+
+                            await Task.Delay(3000);
+                            //lay message ? trên khi không l?y du?c c?a dialog
+                            if (string.IsNullOrWhiteSpace(message))
+                            {
+                                await Task.Delay(1000);
+
+                                // 1. l?y full message
+                                rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                                // 2. Ð?nh d?ng l?i
+                                message = rawText.Trim();
+                            }
                             checkint++;
                         } while (message.Contains("PO(Select BatchID)") && checkint < 3);
 
 
-                        
 
-                        if (message.Contains("is locked") || message.Contains("not exist")|| message.Contains("PO(Select BatchID)"))
+
+                        if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
-                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng được làm PO đại diện: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
+                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng du?c làm PO d?i di?n: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
                             await page.ClickAsync("#lblStatus");
 
                             // PO da complete tu lan truoc thi khong ghi de trang thai trong DB
@@ -1114,7 +1143,7 @@ namespace batchInput_wpf.ViewsModel
                         else
                         {
                             await _service.update_desPO(itemBatch.ListPO[i].ID, "OK");
-                            AddLog($"Item: {itemBatch.ID} Đã nhập PO đại diện thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO đã complete từ lần trước" : "")}).", LogStatus.Success);
+                            AddLog($"Item: {itemBatch.ID} Ðã nh?p PO d?i di?n thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO dã complete t? l?n tru?c" : "")}).", LogStatus.Success);
                             await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, true);
                             return true;
                         }
@@ -1124,7 +1153,7 @@ namespace batchInput_wpf.ViewsModel
             }
             catch (Exception ex)
             {
-                AddLog(ex.Message,LogStatus.Error);
+                AddLog(ex.Message, LogStatus.Error);
                 return false;
             }
         }
@@ -1133,7 +1162,7 @@ namespace batchInput_wpf.ViewsModel
         {
             await page.Keyboard.TypeAsync(itemBatch.ListPO[i].Po);
             await page.Keyboard.PressAsync("Enter");
-            await Task.Delay(5000);
+            //await Task.Delay(5000);
         }
 
         private async Task<bool> AT_Operator_Shift(IPage page, BatchInputHistory itemBatch)
@@ -1323,6 +1352,19 @@ namespace batchInput_wpf.ViewsModel
             catch (Exception ex)
             {
                 AddLog($"ID:{itemBatch.ID} Đã xảy ra lỗi khi chụp ảnh màn hình: {ex.Message}", LogStatus.Error);
+            }
+        }
+
+        private async Task<string> SearchElement(IPage page, string idDiv)
+        {
+            try
+            {
+                string rawcontent = await page.Locator($"#{idDiv}").InnerTextAsync(new() { Timeout = 3000 });
+                return rawcontent ?? "";
+            }
+            catch (System.TimeoutException)
+            {
+                return "";
             }
         }
 
