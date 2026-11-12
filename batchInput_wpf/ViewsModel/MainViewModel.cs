@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.ServiceModel.Channels;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -743,19 +744,39 @@ namespace batchInput_wpf.ViewsModel
                                 //await page.FillAsync("#txtEditPO", listPo[i].Po);
                                 //await page.ClickAsync("#txtEditPO");
                                 await page.Keyboard.PressAsync("Enter");
-                                await Task.Delay(10000);
+                                //await Task.Delay(10000);
 
 
                                 //kiem tra ket qua sau khi xoa 
-                                await page.WaitForFunctionAsync(
-                                    "() => document.getElementById('txtMsg').innerText.trim() !== ''");
+                                //await page.WaitForFunctionAsync(
+                                //    "() => document.getElementById('txtMsg').innerText.trim() !== ''");
 
-                                //string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
-                                // 1. Lấy toàn bộ Text trong thẻ #txtMsg
-                                string rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                                ////string messageInputPO = await page.Locator("#txtMsg").InnerTextAsync();
+                                //// 1. Lấy toàn bộ Text trong thẻ #txtMsg
+                                //string rawText = await page.Locator("#txtMsg").InnerTextAsync();
 
-                                // 2. Định dạng lại văn bản (thay thế chuỗi xuống dòng nếu cần)
-                                string messageInputPO = rawText.Trim();
+                                //// 2. Định dạng lại văn bản (thay thế chuỗi xuống dòng nếu cần)
+                                //string messageInputPO = rawText.Trim();
+                                string rawText = "";
+                                string messageInputPO = "";
+
+                                // 1. lấy full message
+                                //rawText = await page.Locator("#dlgMessage").InnerTextAsync()??"";
+                                rawText = await SearchElement(page, "dlgMessage");
+                                // 2. Định đạng lại
+                                messageInputPO = rawText.Trim();
+
+                                await Task.Delay(3000);
+                                //lay message ở trên khi không lấy được của dialog
+                                if (string.IsNullOrWhiteSpace(messageInputPO))
+                                {
+                                    await Task.Delay(1000);
+
+                                    // 1. lấy full message
+                                    rawText = await page.Locator("#txtMsg").InnerTextAsync();
+                                    // 2. Định đạng lại
+                                    messageInputPO = rawText.Trim();
+                                }
 
                                 Debug.WriteLine(messageInputPO);
                                 string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
@@ -820,7 +841,7 @@ namespace batchInput_wpf.ViewsModel
                                         cntUnknown++;
                                         AddLog($"ID:{item.ID} [DIAG] PO {listPo[i].Po}: count không tăng (coutNow={coutNow}) -> đánh dấu 'Loi khong xac dinh'", LogStatus.Error);
                                         await _service.UpdateSTTPO(listPo[i].ID, false);
-                                        await _service.update_desPO(listPo[i].ID, "Loi khong xac dinh");
+                                        await _service.update_desPO(listPo[i].ID, $"Loi khong xac dinh: {messageInputPO}");
                                         await ScreenShot(page, item);
                                         await Task.Delay(1000);
                                     }
