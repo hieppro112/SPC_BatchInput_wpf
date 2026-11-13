@@ -1115,7 +1115,7 @@ namespace batchInput_wpf.ViewsModel
                             string msgOneLine = messageInputPO.Replace("\r", " ").Replace("\n", " ");
                             AddLog($"ID:{item.ID} [DIAG] PO {i + 1}/{ListPORun.Count} {po.Po}: coutNow={coutNow}, txtPOCount sau Enter: {await ReadPoCountDiagAsync(page)}, txtMsg=\"{msgOneLine}\"");
 
-                            if (messageInputPO.Contains("is locked") || messageInputPO.Contains("is not") || messageInputPO.Contains("ALL NG"))
+                            if (messageInputPO.Contains("is locked") || messageInputPO.Contains("not") || messageInputPO.Contains("ALL NG"))
                             {
                                 cntWebErr++;
                                 AddLog($"ID:{item.ID} PO {po.Po} bị web từ chối: " + msgOneLine, LogStatus.Error);
