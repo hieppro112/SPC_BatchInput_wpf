@@ -683,7 +683,7 @@ namespace batchInput_wpf.ViewsModel
                                     {
                                         await Task.Delay(3000);
                                         bool IscheckList = await AT_Click_list_PO(page, itemBatch.ListPO, itemBatch, itemContext);
-                                        AddLog($"ID:{itemBatch.ID} [DIAG] AT_Click_list_PO tr? v? {IscheckList}, PoCount={itemContext.PoCount}/{itemBatch.ListPO.Count}", IscheckList ? LogStatus.Running : LogStatus.Error);
+                                        AddLog($"ID:{itemBatch.ID} [DIAG] AT_Click_list_PO trả về {IscheckList}, PoCount={itemContext.PoCount}/{itemBatch.ListPO.Count}", IscheckList ? LogStatus.Running : LogStatus.Error);
                                         await Task.Delay(3000);
 
 
@@ -705,13 +705,13 @@ namespace batchInput_wpf.ViewsModel
                                                 {
                                                     await ScreenShot(page, itemBatch);
                                                     await page.CloseAsync();
-                                                    AddLog($"ID:{itemBatch.ID} Ðã có l?i khi ch?y start All ", LogStatus.Error);
+                                                    AddLog($"ID:{itemBatch.ID} Ðã có lỗi khi chạy start All ", LogStatus.Error);
                                                 }
                                             }
                                             else
                                             {
                                                 await ScreenShot(page, itemBatch);
-                                                AddLog($"ID:{itemBatch.ID} Không vào du?c noi start ", LogStatus.Error);
+                                                AddLog($"ID:{itemBatch.ID} Không vào được nơi start ", LogStatus.Error);
                                             }
                                         }
                                         //truong hop finish
@@ -725,9 +725,9 @@ namespace batchInput_wpf.ViewsModel
                                         }
                                         else
                                         {
-                                            AddLog($"ID:{itemBatch.ID} Ðã có l?i t?i nh?p list PO ", LogStatus.Error);
+                                            AddLog($"ID:{itemBatch.ID} Ðã có lỗi tại nhập list PO ", LogStatus.Error);
                                             await ScreenShot(page, itemBatch);
-                                            await _service.update_des(itemBatch.ID, "Ðã có l?i t?i nh?p List PO.");
+                                            await _service.update_des(itemBatch.ID, "Ðã có lỗi tại nhập List PO.");
                                             await page.CloseAsync();
                                             //AT_end_PO(wait, driver);
                                         }
@@ -1011,7 +1011,7 @@ namespace batchInput_wpf.ViewsModel
                         //lay cac po đang co sẵn 
                         var poList = await page.EvaluateAsync<string[]>(@"
                                         () => {
-                                            // L?y t?t c? các dòng d? li?u trong b?ng
+                                            // lấy tất cả các PO trong bảng dữ liệu
                                             const rows = document.querySelectorAll('tr.inlayout.coltitle');
                                             const results = [];
 
@@ -1044,8 +1044,8 @@ namespace batchInput_wpf.ViewsModel
                         //  - ListPOOnWeb: PO da co san tren web -> chi can danh dau trong DB, khong nhap lai
                         //  - ListPORun  : PO chua complete trong DB va chua co tren web -> can nhap
                         // PO da complete tu lan chay truoc nhung khong con tren web (da start o batch truoc) -> bo qua, khong nhap lai
-                        var ListPOOnWeb = listPo.Where(p => poOnWeb.Contains((p.Po ?? "").Trim()) && !p.isComplate).ToList();
-                        var ListPORun = listPo.Where(p => !p.isComplate && !poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
+                        var ListPOOnWeb = listPo.Where(p => poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
+                        var ListPORun = listPo.Where(p =>!poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
 
                         int cntOk = 0, cntWebErr = 0, cntExist = 0, cntSilent = 0, cntUnknown = 0;
                         int cntSkipped = listPo.Count(p => p.isComplate);
@@ -1281,7 +1281,7 @@ namespace batchInput_wpf.ViewsModel
                         if (message.Contains("is locked") || message.Contains("not exist") || message.Contains("PO(Select BatchID)"))
                         {
                             await page.ClickAsync("#txtPO");
-                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng du?c làm PO d?i di?n: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
+                            AddLog($"ID {itemBatch.ID}: PO {itemBatch.ListPO[i].Po} không dùng được làm PO đại diện: {message.Replace("\r", " ").Replace("\n", " ")}", LogStatus.Success);
                             await page.ClickAsync("#lblStatus");
 
                             // PO da complete tu lan truoc thi khong ghi de trang thai trong DB
@@ -1294,7 +1294,7 @@ namespace batchInput_wpf.ViewsModel
                         else
                         {
                             await _service.update_desPO(itemBatch.ListPO[i].ID, "OK");
-                            AddLog($"Item: {itemBatch.ID} Ðã nh?p PO d?i di?n thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO dã complete t? l?n tru?c" : "")}).", LogStatus.Success);
+                            AddLog($"Item: {itemBatch.ID} Ðã nhập PO đại diện thành công (PO {itemBatch.ListPO[i].Po}{(isRetry ? ", PO dã complete từ lần trước" : "")}).", LogStatus.Success);
                             await _service.UpdateSTTPO(itemBatch.ListPO[i].ID, true);
                             return true;
                         }
