@@ -13,7 +13,7 @@ namespace batchInput_wpf.Helper
 {
     public class FileHelper
     {
-        public ItemSaveConfig ReadJson(string path = @"C:\BatchInput_config\config_batchInput.json")
+        public ItemSaveConfig ReadJson(string path = @"C:\BatchInput_HeatGuild_config\config_HeatGuide_batchInput.json")
         {
             if (File.Exists(path))
             {
@@ -21,19 +21,20 @@ namespace batchInput_wpf.Helper
                 ItemSaveConfig config = JsonSerializer.Deserialize<ItemSaveConfig>(jsonW);
                 return new ItemSaveConfig
                 {
-                    pathSaveImg = config.pathSaveImg,
+                    pathSaveImg = config.pathSaveImg ?? "",
                     pathLogErr = config.pathLogErr,
                     PollDelaySeconds = config.PollDelaySeconds,
                     HeadlessMode = config.HeadlessMode,
-                    MaxThreads = config.MaxThreads
+                    MaxThreads = config.MaxThreads,
+                    RecordVideo = config.RecordVideo
                 };
             }
             else
             {
                 ItemSaveConfig item = new ItemSaveConfig();
                 string json = JsonSerializer.Serialize(item);
-                Directory.CreateDirectory(@"C:/BatchInput_config/");
-                File.WriteAllText(@"C:/BatchInput_config/config_batchInput.json", json);
+                Directory.CreateDirectory(@"C:/BatchInput_HeatGuild_config/");
+                File.WriteAllText(@"C:/BatchInput_HeatGuild_config/config_HeatGuide_batchInput.json", json);
                 return item;
             }
         }
@@ -41,8 +42,8 @@ namespace batchInput_wpf.Helper
         {
             //xuat json 
             string json = JsonSerializer.Serialize(item);
-            Directory.CreateDirectory(@"C:/BatchInput_config/");
-            File.WriteAllText(@"C:/BatchInput_config/config_batchInput.json", json);
+            Directory.CreateDirectory(@"C:/BatchInput_HeatGuild_config/");
+            File.WriteAllText(@"C:/BatchInput_HeatGuild_config/config_HeatGuide_batchInput.json", json);
         }
     }
 }

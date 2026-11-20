@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>icons8-input-96.ico</ApplicationIcon>
+    <ApplicationIcon>simple.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="icons8-input-96.ico" />
+    <Resource Include="simple.ico" />
   </ItemGroup>
 
   <ItemGroup>

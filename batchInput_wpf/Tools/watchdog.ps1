@@ -3,7 +3,7 @@
 param(
     [string]$ProcessName = 'batchInput_wpf',
     [Parameter(Mandatory = $true)][string]$AppPath,   # duong dan .exe hoac shortcut ClickOnce (.appref-ms)
-    [string]$LogPath = 'C:\BatchInput_config\watchdog.log'
+    [string]$LogPath = 'C:\BatchInput_HeatGuide_config\watchdog.log'
 )
 
 function Write-Log($message) {

@@ -20,7 +20,11 @@ namespace batchInput_wpf.Views
         // Chinh sua truc tiep tren instance dang chay cua MainViewModel de setting co hieu luc
         // ngay lap tuc, khong can khoi dong lai app.
         private readonly ItemSaveConfig _config;
+        private static readonly SolidColorBrush VideoOnBrush = new((Color)ColorConverter.ConvertFromString("#FF0055"));
+        private static readonly SolidColorBrush VideoOffBrush = new((Color)ColorConverter.ConvertFromString("#94A3B8"));
+
         private bool _headlessMode;
+        private bool _recordVideo;
 
         public ConfigWindow(ItemSaveConfig config)
         {
@@ -30,6 +34,24 @@ namespace batchInput_wpf.Views
             txtDelaySeconds.Text = _config.PollDelaySeconds.ToString();
             txtThreads.Text = _config.MaxThreads.ToString();
             SetHeadlessSelection(_config.HeadlessMode);
+            SetVideoSelection(_config.RecordVideo);
+        }
+
+        private void btnVideoOn_Click(object sender, RoutedEventArgs e) => SetVideoSelection(true);
+
+        private void btnVideoOff_Click(object sender, RoutedEventArgs e) => SetVideoSelection(false);
+
+        private void SetVideoSelection(bool record)
+        {
+            _recordVideo = record;
+
+            btnVideoOn.Background = record ? VideoOnBrush : IdleBackBrush;
+            btnVideoOn.Foreground = record ? DarkForeBrush : IdleForeBrush;
+            btnVideoOn.BorderBrush = record ? VideoOnBrush : IdleBorderBrush;
+
+            btnVideoOff.Background = !record ? VideoOffBrush : IdleBackBrush;
+            btnVideoOff.Foreground = !record ? DarkForeBrush : IdleForeBrush;
+            btnVideoOff.BorderBrush = !record ? VideoOffBrush : IdleBorderBrush;
         }
 
         private void txtDelaySeconds_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -73,6 +95,7 @@ namespace batchInput_wpf.Views
             _config.PollDelaySeconds = seconds;
             _config.MaxThreads = threads;
             _config.HeadlessMode = _headlessMode;
+            _config.RecordVideo = _recordVideo;
             _fileHelper.WriteJson(_config);
 
             DialogResult = true;

@@ -3,6 +3,8 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace batchInput_wpf.Helper
 {
@@ -10,7 +12,7 @@ namespace batchInput_wpf.Helper
     // va dau hieu "bi kill tu ben ngoai" (khong de lai exception nao) qua file heartbeat.
     public static class CrashLogger
     {
-        private const string Dir = @"C:\BatchInput_config";
+        private const string Dir = @"C:\BatchInput_HeatGuild_config";
         private static readonly string LogPath = Path.Combine(Dir, "crash.log");
         private static readonly string HeartbeatPath = Path.Combine(Dir, "heartbeat.txt");
         private static readonly object FileLock = new();
@@ -91,6 +93,52 @@ namespace batchInput_wpf.Helper
             }
             catch
             {
+            }
+        }
+
+        // Chup lai noi dung cua so cua CHINH app (ve lai cay giao dien bang RenderTargetBitmap),
+        // khong chup man hinh / khong dung System.Drawing. Luu vao C:\BatchInput_HeatGuild_config\CloseShots\.
+        // Chi giu SnapshotKeep anh moi nhat de khong day o dia. Tra ve duong dan file, hoac null neu that bai.
+        private const int SnapshotKeep = 50;
+
+        public static string? SaveWindowSnapshot(Window window, string tag)
+        {
+            try
+            {
+                int width = (int)window.ActualWidth;
+                int height = (int)window.ActualHeight;
+                if (width <= 0 || height <= 0) return null;
+
+                var dpi = VisualTreeHelper.GetDpi(window);
+                var bitmap = new RenderTargetBitmap(
+                    (int)(width * dpi.DpiScaleX), (int)(height * dpi.DpiScaleY),
+                    dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+                bitmap.Render(window);
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+
+                string folder = Path.Combine(Dir, "CloseShots");
+                Directory.CreateDirectory(folder);
+                string path = Path.Combine(folder, $"{tag}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png");
+                using (var stream = File.Create(path))
+                {
+                    encoder.Save(stream);
+                }
+
+                foreach (var old in new DirectoryInfo(folder).GetFiles("*.png")
+                                                              .OrderByDescending(f => f.CreationTime)
+                                                              .Skip(SnapshotKeep))
+                {
+                    try { old.Delete(); } catch { }
+                }
+
+                return path;
+            }
+            catch (Exception ex)
+            {
+                Write("SNAPSHOT-FAIL", ex.Message);
+                return null;
             }
         }
 

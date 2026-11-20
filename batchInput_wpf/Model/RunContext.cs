@@ -9,5 +9,6 @@ namespace batchInput_wpf.Model
     public class RunContext
     {
         public int PoCount { get; set; } = 0;
+        public bool HasUnknownError { get; set; } = false;
     }
 }

@@ -10,7 +10,7 @@
         MinHeight="700" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
         Background="#07090E"
-        Foreground="#00E5FF" Closing="Window_Closing">
+        Foreground="#00E5FF" Closing="Window_Closing" Icon="/simple.ico">
 
     <Window.Resources>
         <!-- HIGH-TECH NEON BUTTON - OPEN (CYAN/GREEN) -->
@@ -287,7 +287,7 @@
                 <!-- System Branding -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
                     <TextBlock Text="⚡" FontSize="20" Foreground="#00E5FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock Text="ORDER CHECK SYSTEM" 
+                    <TextBlock Text="BATCH INPUT HEATGUIDE IOT" 
                                FontWeight="Black" 
                                FontSize="20" 
                                Foreground="#FFFFFF"
