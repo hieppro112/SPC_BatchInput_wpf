@@ -1113,7 +1113,9 @@ namespace batchInput_wpf.ViewsModel
                     await page.Locator("#lstBatchPOList_itemPlaceholderContainer")
                               .WaitForAsync();
 
-                    //quet cac PO vao
+                    int cntOk = 0, cntWebErr = 0, cntExist = 0, cntUnknown = 0;
+
+                    //quet cac PO vao cho công đoạn start
                     if (item.start)
                     {
                         //lấy các PO đang có sẵn 
@@ -1155,7 +1157,7 @@ namespace batchInput_wpf.ViewsModel
                         var ListPOOnWeb = listPo.Where(p => poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
                         var ListPORun = listPo.Where(p => !poOnWeb.Contains((p.Po ?? "").Trim())).ToList();
 
-                        int cntOk = 0, cntWebErr = 0, cntExist = 0, cntUnknown = 0;
+                        
                         int cntSkipped = listPo.Count(p => p.isComplate);
                         AddLog($"ID:{item.ID} [DIAG] Trước khi nhập: DB có {listPo.Count} PO ({cntSkipped} đã complete trước đó), web đang có sẵn {poList.Length} dòng PO -> cần nhập {ListPORun.Count} PO, đánh dấu {ListPOOnWeb.Count} PO đã có trên web, txtPOCount: {await ReadPoCountDiagAsync(page)}");
                         await ScreenShot(page, item);
@@ -1173,6 +1175,7 @@ namespace batchInput_wpf.ViewsModel
                             }
                         }
 
+                        //nhap cac PO trong danh sach chua co tren web
                         for (int i = 0; i < ListPORun.Count; i++)
                         {
                             var po = ListPORun[i];
@@ -1257,38 +1260,75 @@ namespace batchInput_wpf.ViewsModel
                     }
                     AddLog($"ID:{item.ID} [DIAG] Chốt PoCount={runContext.PoCount}, DB={listPo.Count} PO, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}, txtPOCount: {await ReadPoCountDiagAsync(page)}");
 
-                    step = "nhấn cho tất cả các item";
-                    AddLog($"ID:{item.ID} Tiến hành nhấn cho tất cả các item");
+                    
 
-                    await Task.Delay(3000);
-                    var btn = page.Locator("#btnAllQtyActCopytoTotal");
-                    if (await btn.IsEnabledAsync())
+                    //check xem có po mới thêm vào mới bắt nhấn cho tất cả PO 
+                    if (cntOk>0 || !item.start)
                     {
-                        await page.ClickAsync("#btnAllQtyActCopytoTotal");
-                    }
-                    await Task.Delay(2000);
-                    AddLog($"ID:{item.ID} [DIAG] Chốt lần 2 PoCount={runContext.PoCount}, DB={listPo.Count} PO, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}, txtPOCount: {await ReadPoCountDiagAsync(page)}");
-                    runContext.PoCount = await ReadPoCountAsync(page);
+                        step = "nhấn cho tất cả các item";
 
-                    step = "nhấn PO read finish";
-                    await page.ClickAsync("#btnPOReadFinish");
-                    await Task.Delay(4000);
 
-                    step = "chờ quay về trang batch";
-                    for (int numcheck = 0; numcheck <= 3; numcheck++)
-                    {
-                        // 1. Doi toi da 30 giay cho tieu de thanh trang batch
-                        if (await WaitForTitleContainsAsync(page, "Daily Report work input batch", 30000))
+                        AddLog($"ID:{item.ID} Tiến hành nhấn cho tất cả các item");
+
+                        await Task.Delay(3000);
+                        var btn = page.Locator("#btnAllQtyActCopytoTotal");
+                        if (await btn.IsEnabledAsync())
                         {
-                            AddLog($"ID:{item.ID} Nhấn cho tất cả các item hoàn thành ", LogStatus.Success);
-                            return true;
+                            // Xóa chữ cũ của #lblStatus trước khi nhấn, tránh nhận nhầm chữ "finish" của lần postback trước
+                            await ClearLblStatusAsync(page);
+                            await page.ClickAsync("#btnAllQtyActCopytoTotal");
+
+                            // Chờ #lblStatus báo "finish" (tối đa 60 giây), thấy là đi tiếp ngay
+                            if (await WaitForLblStatusFinishAsync(page, 60000))
+                            {
+                                AddLog($"ID:{item.ID} #lblStatus đã báo finish sau khi nhấn cho tất cả các item.");
+                            }
+                            else
+                            {
+                                AddLog($"ID:{item.ID} Quá 60 giây #lblStatus chưa báo finish (hiện tại: \"{await ReadElementTextAsync(page, "#lblStatus")}\"), vẫn tiếp tục.", LogStatus.Error);
+                            }
                         }
+                        AddLog($"ID:{item.ID} [DIAG] Chốt lần 2 PoCount={runContext.PoCount}, DB={listPo.Count} PO, số dòng PO thật trên bảng web={await CountPoRowsDiagAsync(page)}, txtPOCount: {await ReadPoCountDiagAsync(page)}");
+                        runContext.PoCount = await ReadPoCountAsync(page);
 
-                        // 2. Qua 30 giay ma van chua ve trang batch: luc nay moi nhan Cancel, roi cho lai o vong sau
-                        AddLog($"ID:{item.ID} Quá 30 giây chưa thấy trang batch, nhấn Cancel (lần {numcheck + 1}).", LogStatus.Error);
-                        await ClickCancelAsync(page, item);
+
+
+                        step = "nhấn PO read finish";
+                        await page.ClickAsync("#btnPOReadFinish");
+                        await Task.Delay(4000);
+
+                        step = "chờ quay về trang batch";
+                        for (int numcheck = 0; numcheck <= 3; numcheck++)
+                        {
+                            // 1. Doi toi da 30 giay cho tieu de thanh trang batch
+                            if (await WaitForTitleContainsAsync(page, "Daily Report work input batch", 30000))
+                            {
+                                AddLog($"ID:{item.ID} Nhấn cho tất cả các item hoàn thành ", LogStatus.Success);
+                                return true;
+                            }
+
+                            // 2. Qua 30 giay ma van chua ve trang batch: luc nay moi nhan Cancel, roi cho lai o vong sau
+                            AddLog($"ID:{item.ID} Quá 30 giây chưa thấy trang batch, nhấn Cancel (lần {numcheck + 1}).", LogStatus.Error);
+                            await ClickCancelAsync(page, item);
+                        }
                     }
+                    else
+                    {
+                        await ClickCancelAsync(page, item);
+                        for (int numcheck = 0; numcheck <= 3; numcheck++)
+                        {
+                            // 1. Doi toi da 30 giay cho tieu de thanh trang batch
+                            if (await WaitForTitleContainsAsync(page, "Daily Report work input batch", 30000))
+                            {
+                                AddLog($"ID:{item.ID} Trở về home không cần nhấn cho tất cả ", LogStatus.Success);
+                                return true;
+                            }
 
+                            // 2. Qua 30 giay ma van chua ve trang batch: luc nay moi nhan Cancel, roi cho lai o vong sau
+                            AddLog($"ID:{item.ID} Quá 30 giây chưa thấy trang batch, nhấn Cancel (lần {numcheck + 1}).", LogStatus.Error);
+                            await ClickCancelAsync(page, item);
+                        }
+                    }
                     AddLog($"ID:{item.ID} Đã nhấn Cancel 4 lần mà vẫn chưa về được trang batch.", LogStatus.Error);
                     return false;
                 }
@@ -1301,6 +1341,31 @@ namespace batchInput_wpf.ViewsModel
                 AddLog($"ID:{item.ID} Đã xảy ra lỗi trong quá trình vào nhập List PO (bước: {step}): " + ex.Message.Split('\n')[0], LogStatus.Error);
                 return false;
             }
+        }
+
+        // Xóa nội dung #lblStatus để lần chờ "finish" sau đó chỉ nhận chữ mới do postback vừa trả về.
+        private async Task ClearLblStatusAsync(IPage page)
+        {
+            try
+            {
+                await page.EvaluateAsync("() => { const l = document.getElementById('lblStatus'); if (l) l.textContent = ''; }");
+            }
+            catch (PlaywrightException) { }
+        }
+
+        // Chờ tối đa timeoutMs cho đến khi #lblStatus chứa chữ "finish" (không phân biệt hoa thường). true nếu thấy, false nếu hết giờ.
+        private async Task<bool> WaitForLblStatusFinishAsync(IPage page, int timeoutMs)
+        {
+            try
+            {
+                await page.WaitForFunctionAsync(
+                    "() => { const l = document.getElementById('lblStatus'); return !!l && l.textContent.toLowerCase().includes('finish'); }",
+                    null,
+                    new PageWaitForFunctionOptions { Timeout = timeoutMs, PollingInterval = 500 });
+                return true;
+            }
+            catch (TimeoutException) { return false; }
+            catch (PlaywrightException ex) when (ex.Message.Contains("Timeout", StringComparison.OrdinalIgnoreCase)) { return false; }
         }
 
         // Nhan nut Cancel: thu bang chuot (cho nut toi da 5 giay); neu nut bi che / chua san sang thi bam bang script tren trang.
