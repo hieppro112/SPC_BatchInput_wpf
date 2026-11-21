@@ -383,11 +383,24 @@ namespace batchInput_wpf.ViewsModel
         {
             // So lan chay LAI toi da khi gap "Loi khong xac dinh" (tong so lan chay = 1 + MaxRetry)
             const int MaxRetry = 3;
+            // Thoi gian cho truoc moi lan chay lai (tranh dang nhap/postback lien tuc len server web)
+            const int RetryWaitMinutes = 5;
             bool result_run = false;
             int retryCount = 0;
-            RunContext runContext;
+            RunContext runContext = new RunContext();
             do
             {
+                // Lan chay lai: cho 5 phut truoc khi chay (tab cu da dong, chi giu luong nay cho)
+                if (retryCount > 0)
+                {
+                    AddLog($"ID:{item.ID} Có PO 'Loi khong xac dinh', chờ {RetryWaitMinutes} phút rồi chạy lại lần {retryCount}/{MaxRetry}.", LogStatus.Error);
+                    if (!await WaitWhileRunningAsync(TimeSpan.FromMinutes(RetryWaitMinutes)))
+                    {
+                        AddLog($"ID:{item.ID} Đã dừng chạy trong lúc chờ, bỏ qua lần chạy lại.", LogStatus.Error);
+                        break;
+                    }
+                }
+
                 // Moi lan chay dung context moi de co loi duoc reset
                 runContext = new RunContext();
 
@@ -427,6 +440,21 @@ namespace batchInput_wpf.ViewsModel
 
                 await File.WriteAllTextAsync(filePath, parse_json);
             }
+        }
+
+        // Cho het khoang thoi gian, moi 5 giay kiem tra 1 lan; nguoi dung bam dung (IsRunning = false) thi thoi cho ngay.
+        // Tra ve true neu cho du, false neu bi dung giua chung.
+        private async Task<bool> WaitWhileRunningAsync(TimeSpan duration)
+        {
+            var end = DateTime.Now + duration;
+            while (DateTime.Now < end)
+            {
+                if (!IsRunning) return false;
+                var left = end - DateTime.Now;
+                if (left <= TimeSpan.Zero) break;
+                await Task.Delay(left < TimeSpan.FromSeconds(5) ? left : TimeSpan.FromSeconds(5));
+            }
+            return IsRunning;
         }
 
         // Chay 1 "luot": mo 1 browser, cac luong cung lay viec tu hang doi cho den khi het viec.
