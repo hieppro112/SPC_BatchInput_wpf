@@ -138,7 +138,7 @@ namespace batchInput_wpf.Service
     }
     catch (Exception ex)
     {
-        _log($"ID:{id} Ðã có l?i khi update runTime: " + ex.Message, LogStatus.Error);
+        _log($"ID:{id} Đã có lỗi khi update runTime: " + ex.Message, LogStatus.Error);
 
         //return new List<ItemGetCount>();
     }
