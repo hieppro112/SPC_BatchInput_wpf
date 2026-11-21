@@ -1189,7 +1189,7 @@ namespace batchInput_wpf.ViewsModel
                             await page.Keyboard.TypeAsync(po.Po);
                             await page.Keyboard.PressAsync("Enter");
 
-                            // 1. Lay message cua dialog (cho toi da 3 giay); khong co dialog thi lay o #txtMsg
+                            // 1. Lay message cua dialog (cho toi da 10 giay); khong co dialog thi lay o #txtMsg
                             string messageInputPO = (await SearchElement(page, "dlgMessage")).Trim();
 
                             await Task.Delay(3000);
@@ -1686,7 +1686,7 @@ namespace batchInput_wpf.ViewsModel
         {
             try
             {
-                string rawcontent = await page.Locator($"#{idDiv}").InnerTextAsync(new() { Timeout = 3000 });
+                string rawcontent = await page.Locator($"#{idDiv}").InnerTextAsync(new() { Timeout = 10000 });
                 return rawcontent ?? "";
             }
             catch (System.TimeoutException)
